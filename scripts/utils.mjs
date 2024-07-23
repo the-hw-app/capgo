@@ -10,7 +10,7 @@ const keys = {
   base_domain: process.env.BASE_DOMAIN,
   supa_anon: process.env.SUPA_ANON,
   supa_url: `${process.env.PORT_TYPE || 'https'}://${process.env.API_URL}`,
-  api_domain: `${process.env.API_DOMAIN}/functions/v1`,
+  api_domain: `${process.env.API_URL}/functions/v1`,
 }
 
 export function getRightKey(keyname) {

@@ -1,20 +1,20 @@
+import type { Router } from 'vue-router/auto'
 // register vue composition api globally
-import { createApp } from 'vue'
 import { CapacitorUpdater } from '@capgo/capacitor-updater'
 
+import { setupLayouts } from 'virtual:generated-layouts'
+import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router/auto'
 import { routes } from 'vue-router/auto-routes'
-import { setupLayouts } from 'virtual:generated-layouts'
-import type { Router } from 'vue-router/auto'
 import App from './App.vue'
 
+import { initPlausible } from './services/plausible'
+
+import { getRemoteConfig } from './services/supabase'
 // your custom styles here
 import './styles/style.css'
 
-import { initPlausible } from './services/plausible'
-import { getRemoteConfig } from './services/supabase'
-
-const guestPath = ['/login', '/register', '/delete_account', '/forgot_password', '/resend_email', '/onboarding']
+const guestPath = ['/login', '/delete_account', '/forgot_password', '/resend_email', '/onboarding']
 
 getRemoteConfig()
 const app = createApp(App)
@@ -33,8 +33,12 @@ const newRoutes = routes.map((route) => {
   return route
 })
 const router = createRouter({
-  // TODO: fix this redirect are not working
-  routes: [{ path: '/app', redirect: '/app/home' }, { path: '/', redirect: '/login' }, ...setupLayouts(newRoutes)],
+  routes: [
+    { path: '/app', redirect: '/app/home' },
+    { path: '/', redirect: '/login' },
+    { path: '/dashboard/settings/plans', redirect: '/dashboard/settings/organization/plans' },
+    ...setupLayouts(newRoutes),
+  ],
   history: createWebHistory(import.meta.env.BASE_URL),
 })
 app.use(router)

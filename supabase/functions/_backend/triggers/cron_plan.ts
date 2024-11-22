@@ -1,5 +1,5 @@
-import { Hono } from 'hono/tiny'
 import type { Context } from '@hono/hono'
+import { Hono } from 'hono/tiny'
 import { BRES, middlewareAPISecret } from '../utils/hono.ts'
 import { checkPlanOrg } from '../utils/plans.ts'
 
@@ -12,7 +12,7 @@ export const app = new Hono()
 app.post('/', middlewareAPISecret, async (c: Context) => {
   try {
     const body = await c.req.json<orgToGet>()
-    console.log('body', body)
+    console.log({ requestId: c.get('requestId'), context: 'post cron plan body', body })
     if (!body.orgId)
       return c.json({ status: 'No orgId' }, 400)
 

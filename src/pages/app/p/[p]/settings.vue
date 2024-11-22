@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { toast } from 'vue-sonner'
 import { Camera } from '@capacitor/camera'
-import mime from 'mime'
 import { FormKit, FormKitMessages } from '@formkit/vue'
-import { useSupabase } from '~/services/supabase'
-import { urlToAppId } from '~/services/conversion'
-import type { Database } from '~/types/supabase.types'
+import ArrowUpTray from '~icons/heroicons/arrow-up-tray?raw'
+import Pencil from '~icons/heroicons/pencil-square'
+import gearSix from '~icons/ph/gear-six?raw'
 import iconName from '~icons/ph/user?raw'
+import mime from 'mime'
+import { useI18n } from 'petite-vue-i18n'
+import { toast } from 'vue-sonner'
+import { urlToAppId } from '~/services/conversion'
+import { useSupabase } from '~/services/supabase'
 import type { OrganizationRole } from '~/stores/organization'
+import type { Database } from '~/types/supabase.types'
 
 const isLoading = ref(false)
 const isFirstLoading = ref(true)
@@ -19,6 +23,7 @@ const appRef = ref<Database['public']['Tables']['apps']['Row'] & { owner_org: Da
 const { t } = useI18n()
 const displayStore = useDisplayStore()
 const role = ref<OrganizationRole | null>(null)
+const forceBump = ref(0)
 const organizationStore = useOrganizationStore()
 
 onMounted(async () => {
@@ -110,7 +115,7 @@ async function deleteApp() {
     toast.error(t('cannot-delete-app'))
   }
 }
-async function submit(form: { app_name: string }) {
+async function submit(form: { app_name: string, retention: number }) {
   isLoading.value = true
   if (role.value && !organizationStore.hasPermisisonsInRole(role.value, ['super_admin'])) {
     toast.error(t('no-permission'))
@@ -118,31 +123,94 @@ async function submit(form: { app_name: string }) {
     return
   }
   const newName = form.app_name
-  if (newName === (appRef.value?.name ?? '')) {
-    toast.error(t('new-name-not-changed'))
-    isLoading.value = false
-    return
+  if (newName !== (appRef.value?.name ?? '')) {
+    if (newName.length > 32) {
+      toast.error(t('new-name-to-long'))
+      isLoading.value = false
+      return
+    }
+
+    const { error } = await supabase.from('apps').update({ name: newName }).eq('app_id', appId.value)
+    if (error) {
+      toast.error(t('cannot-change-name'))
+      console.error(error)
+      isLoading.value = false
+      return
+    }
+
+    if (appRef.value)
+      appRef.value.name = newName
+
+    toast.success(t('changed-app-name'))
   }
-
-  if (newName.length > 32) {
-    toast.error(t('new-name-to-long'))
-    isLoading.value = false
-    return
+  if (form.retention !== appRef.value?.retention) {
+    const { error } = await supabase.from('apps').update({ retention: form.retention }).eq('app_id', appId.value)
+    if (error) {
+      toast.error(t('cannot-change-retention'))
+      console.error(error)
+      isLoading.value = false
+    }
+    else {
+      toast.success(t('changed-app-retention'))
+      if (appRef.value)
+        appRef.value.retention = form.retention
+    }
   }
-
-  const { error } = await supabase.from('apps').update({ name: newName }).eq('app_id', appId.value)
-  if (error) {
-    toast.error(t('cannot-change-name'))
-    console.error(error)
-    isLoading.value = false
-    return
-  }
-
-  if (appRef.value?.name)
-    appRef.value.name = newName
-
-  toast.success(t('changed-app-name'))
   isLoading.value = false
+}
+
+async function setDefaultChannel() {
+  const { data: channels, error } = await supabase.from('channels')
+    .select('name')
+    .eq('app_id', appRef.value?.app_id ?? '')
+
+  if (error) {
+    toast.error(t('cannot-change-default-upload-channel'))
+    console.error(error)
+    return
+  }
+
+  const buttons = channels.map((chann) => {
+    return {
+      text: chann.name,
+      handler: async () => {
+        const { error: appError } = await supabase.from('apps')
+          .update({ default_upload_channel: chann.name })
+          .eq('app_id', appRef.value?.app_id ?? '')
+
+        if (appError) {
+          toast.error(t('cannot-change-default-upload-channel'))
+          console.error(error)
+          return
+        }
+        if (appRef.value) {
+          appRef.value.default_upload_channel = chann.name
+          forceBump.value += 1
+        }
+        toast.success(t('updated-default-upload-channel'))
+      },
+    }
+  })
+
+  displayStore.dialogOption = {
+    header: t('select-default-upload-channel-header'),
+    message: `${t('select-default-upload-channel')}`,
+    headerStyle: 'w-full text-center',
+    textStyle: 'w-full text-center',
+    preventAccidentalClose: true,
+    buttonVertical: true,
+    size: 'max-w-xl',
+    buttons: Array.prototype.concat(
+      buttons,
+      [
+        {
+          text: t('button-cancel'),
+          role: 'cancel',
+        },
+      ],
+    ),
+  }
+  displayStore.showDialog = true
 }
 
 const isSuperAdmin = computed(() => {
@@ -292,14 +360,16 @@ async function editPhoto() {
           <div class="flex items-center">
             <div class="mr-4">
               <img
-                v-if="appRef?.icon_url" class="object-cover w-20 h-20 rounded" :src="appRef?.icon_url"
+                v-if="appRef?.icon_url" class="object-cover w-20 h-20 mask mask-squircle" :src="appRef?.icon_url"
                 width="80" height="80" alt="User upload"
               >
-              <div v-else class="flex items-center justify-center w-20 h-20 text-4xl border border-black rounded dark:border-white">
-                <p>{{ acronym }}</p>
+              <div v-else class="p-6 text-xl bg-gray-700 mask mask-squircle">
+                <span class="font-medium text-gray-300">
+                  {{ acronym }}
+                </span>
               </div>
             </div>
-            <button id="change-org-pic" type="button" class="px-3 py-2 text-xs font-medium text-center text-gray-700 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white border-grey focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800" @click="editPhoto">
+            <button id="change-org-pic" type="button" class="px-3 py-2 text-xs font-medium text-center text-gray-700 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white border-slate-500 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800" @click="editPhoto">
               {{ t('change') }}
             </button>
           </div>
@@ -316,6 +386,37 @@ async function editPhoto() {
                 :value="appRef?.name || ''"
                 :label="t('app-name')"
               />
+              <div :key="forceBump" class="flex flex-row">
+                <FormKit
+                  type="text"
+                  name="default_upload_channel"
+                  :prefix-icon="ArrowUpTray"
+                  :value="appRef?.default_upload_channel ?? t('undefined')"
+                  :label="t('default-upload-channel')"
+                  :sections-schema="{
+                    suffix: {
+                      children: [
+                        '$slots.magic',
+                      ],
+                    },
+                  }"
+                  :disabled="true"
+                >
+                  <template #magic>
+                    <button type="button" class="ml-auto w-[24px] h-[24px] mr-1" @click="setDefaultChannel">
+                      <Pencil width="24px" height="24px" />
+                    </button>
+                  </template>
+                </FormKit>
+              </div>
+              <FormKit
+                type="number"
+                number="integer"
+                name="retention"
+                :prefix-icon="gearSix"
+                :value="appRef?.retention || 0"
+                :label="t('retention')"
+              />
             </div>
           </div>
           <FormKitMessages />
@@ -323,9 +424,9 @@ async function editPhoto() {
       </div>
       <!-- Panel footer -->
       <footer>
-        <div class="flex flex-col px-6 py-5 border-t dark:border-slate-200">
+        <div class="flex flex-col px-6 py-5 border-t dark:border-slate-600">
           <div class="flex self-end">
-            <button v-if="isSuperAdmin" class="p-2 text-red-600 border border-red-400 rounded-lg hover:bg-red-600 hover:text-white" @click="deleteApp()">
+            <button v-if="isSuperAdmin" type="button" class="p-2 text-red-600 border border-red-400 rounded-lg hover:bg-red-600 hover:text-white" @click="deleteApp()">
               {{ t('delete-app') }}
             </button>
             <button

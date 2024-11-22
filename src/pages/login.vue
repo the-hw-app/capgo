@@ -1,23 +1,27 @@
 <script setup lang="ts">
+import type { Factor } from '@supabase/supabase-js'
 import type { Ref } from 'vue'
-import { onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
+import { Capacitor } from '@capacitor/core'
 import { setErrors } from '@formkit/core'
 import { FormKit, FormKitMessages } from '@formkit/vue'
-import { toast } from 'vue-sonner'
-import type { Factor } from '@supabase/supabase-js'
-import dayjs from 'dayjs'
-import { Capacitor } from '@capacitor/core'
-import { autoAuth, useSupabase } from '~/services/supabase'
-import { hideLoader } from '~/services/loader'
 import iconEmail from '~icons/oui/email?raw'
 import iconPassword from '~icons/ph/key?raw'
 import mfaIcon from '~icons/simple-icons/2fas?raw'
+import dayjs from 'dayjs'
+import { useI18n } from 'petite-vue-i18n'
+import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
+import VueTurnstile from 'vue-turnstile'
+import { openMessenger } from '~/services/bento'
+import { hideLoader } from '~/services/loader'
+import { autoAuth, useSupabase } from '~/services/supabase'
 
-const route = useRoute()
+const route = useRoute('/login')
 const supabase = useSupabase()
 const isLoading = ref(false)
+const turnstileToken = ref('')
+const captchaKey = ref(import.meta.env.VITE_CAPTCHA_KEY)
 const stauts: Ref<'login' | '2fa'> = ref('login')
 const mfaLoginFactor: Ref<Factor | null> = ref(null)
 const mfaChallangeId: Ref<string> = ref('')
@@ -26,25 +30,43 @@ const { t } = useI18n()
 
 const version = import.meta.env.VITE_APP_VERSION
 
+function openSupport() {
+  openMessenger()
+}
+
 async function nextLogin() {
-  router.push('/app/home')
+  if (route.query.to && typeof route.query.to === 'string') {
+    router.push(route.query.to)
+  }
+  else {
+    router.push('/app/home')
+  }
   setTimeout(async () => {
     isLoading.value = false
   }, 500)
 }
 
 async function submit(form: { email: string, password: string, code: string }) {
+  isLoading.value = true
   if (stauts.value === 'login') {
-    isLoading.value = true
     const { error } = await supabase.auth.signInWithPassword({
       email: form.email,
       password: form.password,
+      options: {
+        captchaToken: turnstileToken.value,
+      },
     })
     if (error) {
       isLoading.value = false
       console.error('error', error)
       setErrors('login-account', [error.message], {})
-      toast.error(t('invalid-auth'))
+      if (error.message.includes('captcha')) {
+        toast.error(t('captcha-fail'))
+      }
+      else {
+        toast.error(t('invalid-auth'))
+      }
+
       return
     }
 
@@ -114,14 +136,34 @@ async function submit(form: { email: string, password: string, code: string }) {
     if (verify.error) {
       toast.error(t('invalid-mfa-code'))
       console.error('verify error', verify.error)
+      isLoading.value = false
     }
     else {
       await nextLogin()
+      isLoading.value = false
     }
   }
 }
 
 async function checkLogin() {
+  const parsedUrl = new URL(route.fullPath, window.location.origin)
+  const params = new URLSearchParams(parsedUrl.search)
+  const accessToken = params.get('access_token')
+  const refreshToken = params.get('refresh_token')
+
+  if (!!accessToken && !!refreshToken) {
+    const res = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    })
+    if (res.error) {
+      console.error('Cannot set auth', res.error)
+      return
+    }
+    nextLogin()
+    return
+  }
+
   isLoading.value = true
   const resUser = await supabase.auth.getUser()
   const user = resUser?.data.user
@@ -211,7 +253,7 @@ async function checkLogin() {
 }
 
 // eslint-disable-next-line regexp/no-unused-capturing-group
-const mfaRegex = /((\d){6})|((\d){3} (\d){3})$/
+const mfaRegex = /(((\d){6})|((\d){3} (\d){3}))$/
 const mfa_code_validation = function (node: { value: any }) {
   return Promise.resolve(mfaRegex.test(node.value))
 }
@@ -249,7 +291,7 @@ onMounted(checkLogin)
       </div>
 
       <div v-if="stauts === 'login'" class="relative max-w-md mx-auto mt-8 md:mt-4">
-        <div class="overflow-hidden bg-white rounded-md shadow-md">
+        <div class="overflow-hidden bg-white rounded-md shadow-md dark:bg-slate-800">
           <div class="px-4 py-6 text-gray-500 sm:px-8 sm:py-7">
             <FormKit id="login-account" type="form" :actions="false" @submit="submit">
               <div class="space-y-5">
@@ -266,11 +308,14 @@ onMounted(checkLogin)
                     validation="required:trim" enterkeyhint="send" autocomplete="current-password"
                   />
                 </div>
+                <div v-if="!!captchaKey">
+                  <VueTurnstile v-model="turnstileToken" size="flexible" :site-key="captchaKey" />
+                </div>
                 <FormKitMessages />
                 <div>
                   <div class="inline-flex items-center justify-center w-full">
                     <svg
-                      v-if="isLoading" class="inline-block w-5 h-5 mr-3 -ml-1 text-gray-900 align-middle animate-spin"
+                      v-if="isLoading" class="inline-block w-5 h-5 mr-3 -ml-1 text-gray-900 align-middle dark:text-white animate-spin"
                       xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                     >
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -295,23 +340,23 @@ onMounted(checkLogin)
                   <div class="">
                     <router-link
                       to="/resend_email"
-                      class="text-sm font-medium text-orange-400 transition-all duration-200 focus:text-orange-500 hover:text-orange-500 hover:underline"
+                      class="text-sm font-medium text-orange-500 transition-all duration-200 focus:text-orange-600 hover:text-orange-600 hover:underline"
                     >
                       {{ t('resend-confirm') }}
                     </router-link>
                   </div>
                   <div class="">
-                    <router-link
-                      to="/register"
-                      class="text-sm font-medium text-orange-400 transition-all duration-200 focus:text-orange-500 hover:text-orange-500 hover:underline"
+                    <a
+                      href="https://capgo.app/register/"
+                      class="text-sm font-medium text-orange-500 transition-all duration-200 focus:text-orange-600 hover:text-orange-600 hover:underline"
                     >
                       {{ t('create-a-free-accoun') }}
-                    </router-link>
+                    </a>
                   </div>
                   <div class="">
                     <router-link
                       to="/forgot_password"
-                      class="text-sm font-medium text-orange-400 transition-all duration-200 focus:text-orange-500 hover:text-orange-500 hover:underline"
+                      class="text-sm font-medium text-orange-500 transition-all duration-200 focus:text-orange-600 hover:text-orange-600 hover:underline"
                     >
                       {{ t('forgot') }} {{ t('password') }} ?
                     </router-link>
@@ -321,14 +366,17 @@ onMounted(checkLogin)
             </FormKit>
           </div>
         </div>
-        <section class="flex flex-col mt-6 md:flex-row md:items-center items-left">
+        <section class="flex flex-col items-center mt-6">
           <div class="mx-auto">
             <LangSelector />
           </div>
+          <button class="p-2 mt-3 text-gray-500 rounded-md hover:bg-gray-300" @click="openSupport">
+            {{ t("support") }}
+          </button>
         </section>
       </div>
       <div v-else class="relative max-w-md mx-auto mt-8 md:mt-4">
-        <div class="overflow-hidden bg-white rounded-md shadow-md">
+        <div class="overflow-hidden bg-white rounded-md shadow-md dark:bg-slate-800">
           <div class="px-4 py-6 sm:px-8 sm:py-7">
             <FormKit id="2fa-account" type="form" :actions="false" autocapitalize="off" @submit="submit">
               <div class="space-y-5 text-gray-500">
@@ -348,7 +396,7 @@ onMounted(checkLogin)
                 <div>
                   <div class="inline-flex items-center justify-center w-full">
                     <svg
-                      v-if="isLoading" class="inline-block w-5 h-5 mr-3 -ml-1 text-gray-900 align-middle animate-spin"
+                      v-if="isLoading" class="inline-block w-5 h-5 mr-3 -ml-1 text-gray-900 align-middle dark:text-white animate-spin"
                       xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                     >
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />

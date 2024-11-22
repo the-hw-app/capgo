@@ -6,6 +6,7 @@ Bandwidth: Bandwidth
 Current: Current
 Storage: Storage
 ab-testing-progressive-deploy-conflict: AB testing and progressive deploy cannot be enabled at the same time
+account: account
 account-error: Error while updating your account
 account-id: Account id
 account-password-error: Error happened, please try again
@@ -25,6 +26,7 @@ add-another-app: Add your app
 add-api-key: Added new API key successfully
 add-member: Add Member
 add-your-first-app-t: Add your first app to your account and let's push updates !
+admin: admin
 alert-2fa-disable: Confirm that you want to disable 2FA
 alert-accept-inviation: Do you accept the invitation to %ORG%?
 alert-add-new-key: Select new API key type
@@ -41,7 +43,7 @@ alert-not-reverse-message: This action is not reversible
 alert-regenerate-key: Are you sure you want to regenerate this key
 alert-unknown-error: Unknown error, see dev console
 allow-develoment-bui: Allow develoment build
-allow-device-to-self: Allow devices to self associate
+allow-device-to-self: Allow devices to self dissociate/associate
 allow-emulator: Allow Emulators
 already-account: You already have an account?
 api-doc: API doc
@@ -55,6 +57,7 @@ app-logo-deleted: App picture deleted successfully
 app-name: App name
 app-perm: App permission
 are-u-sure: Are you sure ?
+are-you-sure-you-want-to-download: Are you sure that you want to download?
 available-in-the-san: Available in the sandbox app
 back-to-login-page: Back to login page
 bandwith-usage: 'Bandwith usage: '
@@ -63,6 +66,7 @@ best-plan: Best plan
 bigger-app-size: Bigger app size
 billed-annually-at: Billed annually at
 billed-monthly-at: Billed monthly at
+billing: billing
 bulk-upload: Bulk upload
 bundle: Bundle
 bundle-deleted: Bundle deleted
@@ -83,9 +87,15 @@ button-remove: Remove
 by-clicking-on-them: by clicking on them.
 canceled-delete: Canceled bundle deletion, cannot delete a linked bundle
 canceled-photo-selection: You canceled the picture selection
+cannot-change-default-upload-channel: Cannot change default upload channel, please check the browser console
 cannot-change-name: Cannot change name, please check the browser console
 cannot-change-permission: Cannot change permissions, check browser console
+cannot-change-retention: Cannot change retention, please check the browser console
+cannot-copy: Cannot copy in your clipboard, please copy youself from the modal
+cannot-copy-key: Cannot copy key in your clipboard, please copy it yourself
+cannot-create-empty-device: Cannot create empty device. Please check the browser's console
 cannot-create-org: Cannot create an organization, please check the browser logs!
+cannot-create-overwrite: Cannot create overwrite. Please check the browser's console
 cannot-del-org: Cannot delete the organization, please check the browser log
 cannot-delete-app: Cannot delete App
 cannot-delete-app-icon: Cannot delete app icon
@@ -93,6 +103,8 @@ cannot-delete-bundle: Cannot delete bundle
 cannot-delete-channel: Cannot delete channel
 cannot-delete-member: Cannot delete member, check browser console
 cannot-delete-owner: Cannot delete owner from the organization
+cannot-determine-platform: Cannot determine if the given UUID belongs to IOS or Android
+cannot-fetch-channels: Cannot fetch channels. Please check browser console
 cannot-find-unknown-version: >-
   Cannot find unknown version, please contact capgo support and check browser
   logs
@@ -105,10 +117,13 @@ cannot-test-app-some: Cannot test app something wrong happened
 cannot-view-plans: Cannot view the plans page
 cannot-view-usage: Cannot view the usage page
 cannots-sign-off: Cannot log of
+captcha: Captcha
+captcha-fail: Captcha validation failed
 change: Change
 change-api-key-name: Change the apikey's name
 change-your-picture: Change your picture
 changed-app-name: Successfully changed app name
+changed-app-retention: Successfully changed the app's retention
 changed-name: Successfully changed apikey's name
 changed-password-suc: Password changed successfully
 channel: Channel
@@ -135,6 +150,15 @@ cli-doc: CLI doc
 commands: commands
 confirm-email: Confirm your email
 confirm-email-sent: A confirmation email was sent click to link to confirm your email
+confirm-overwrite: Confirm overwrite
+confirm-overwrite-msg: |-
+  You are about to create the following overwrite:
+
+  Device ID: $1
+  Channel: $2
+  Channel version: $3
+
+  Does that sound correct?
 confirm-password: Confirm password
 confirm-public-desc: |-
   Making this channel default will make it send updates to all yours users.
@@ -150,6 +174,8 @@ created-at: Created at
 custom: Custom
 custom-domain: Custom domain
 custom-id: Custom ID
+dashboard: dashboard
+default-upload-channel: Default upload channel
 defined-as-private: defined as normal
 defined-as-public: defined as default
 delete: Delete
@@ -162,6 +188,10 @@ deleted: deleted
 detailed-usage-plan: Detailed usage
 device: Device
 device-id: Device ID
+device-injected: This device has been created manually to add an overwrite.
+device-injected-2: >-
+  Some values are placeholders and they will be updated after the device's first
+  update
 devices: Devices
 did-not-recive-confirm-email: Didn't receive confirmation email?
 disable: Disable
@@ -169,8 +199,10 @@ disable-ab-testing: Disabled AB testing
 disable-auto-downgra: Disable auto downgrade under native
 disable-progressive-deploy: Disabled progressive deploy
 disableAutoUpdateToMajor: Disable auto update
+discord: discord
 discover-module-in-a: Discover module in Awesome-capacitor
 discover-your-dashbo: Discover your dashboard !
+documentation: documentation
 dont-have-an-account: Don’t have an account?
 download: Download
 email: Email
@@ -189,15 +221,19 @@ fast-forward: Fast Forward
 first-name: First name
 force-version: Force version
 force-version-change: Skip progressive deploy
+forced-devices-not-found: This channel does not have any forced devices
 forgot: Forgot
 forgot-check-email: Check your email to get the link to reset your password
 forgot-success: Password updated successfully
 free-trial: Free trial
 from-device: from device
 general-information: General Informations
+generate-device-overwrite: Generate device overwrite
+generate-device-overwrite-msg: You are about to generate a device overwrite. Do you want to continue?
 generated-new-apikey: Generated new API key!
 go-back: Go back
 good: Good
+here: here
 id: ID
 included-in-plan: Included in plan
 info: Information
@@ -207,6 +243,7 @@ install: Installed
 invalid-auth: Your login are not a match, try again.
 invalid-email: Passed email is not valid
 invalid-mfa-code: Invalid 2FA code
+invalid-uuid: Invalid UUID
 invalid-version: Invalid semver version
 invite-accepted: Successfully accepted oranization inviation
 is-emulator: Is Emulator
@@ -223,6 +260,7 @@ last-15-minutes: Last 15 minutes
 last-3-minutes: Last 3 minutes
 last-minute: Last minute
 last-name: Last name
+last-run: Last update
 last-update: Last update
 last-upload: Last upload
 last-version: Last version
@@ -230,8 +268,10 @@ latest_version: Latest bundle
 launch-bundle: Launch bundle
 leaving: Leaving
 live-reload: Live reload
+log-as: Start spoofing
 log-in: Log in
 login-to-your-accoun: Login to your account
+logout: logout
 logs: Logs
 main-bundle-number: Main bundle number
 major: Major
@@ -273,15 +313,21 @@ new-name-not-changed: The new name is the same as the old one
 new-name-to-long: The new name is too long. You can only use 32 characters
 new-name-to-short: The apikey name is too short. It must be atleast 4 characters longs
 next: Next
+next-run: Next update
 'no': 'no'
 no-app-icon: This app does not have any app icon
 no-data: No Data
 no-permission: Insufficient permissions
+no-permission-ask-super-admin: >-
+  insufficient permission, please ask a super admin to delete this bundle
+  unsafely
 none: None
+normal: Normal
 not-found: Not found
 not-paying-org-usage: >-
   This organization is not paying, cannot show usage for a free trier
   organization
+notifications: notifications
 ok: OK
 old-onboarding-mode: old onboarding
 one-day-left: One day left
@@ -309,19 +355,27 @@ password-hint: Enter a combination of at least 6 numbers, letters and punctuatio
 patch: Patch
 percent-fail: Fail percentage
 permission-changed: Successfully changed user permission
+pernament: Pernament
 personal-information: Personal Informations
 picture-delete-fail: Cannot delete app picture, please check console log
 picture-uploaded: Picture uploaded successfully
 plan-bandwidth: GB Bandwidth
 plan-desc: Start building for free, then add a plan to go live.
+plan-failed: Plan failed, please verify your card details
+plan-free: Best for MVP and testing
 plan-inactive: Plan inactive
+plan-maker: Best for small business owners
 plan-page-warn: Buying a plan will ONLY affect the "%ORG_NAME%" organization.
 plan-page-warn-2: Learn more about it.
+plan-payasyougo: Best for scalling enterprises
 plan-pricing-plans: Pricing Plans
+plan-solo: Best for indies
 plan-storage: GB Storage
+plan-team: Best for big business owners
 plan-updates: Updates
 plan-upgrade: Subscribe
 plan-whats-included: What's included
+plans: plans
 plans-super-only: Only super admins are allowed to view plans and billing
 platform: Platform
 please-ask-the-user-to-create-account-first: Please ask the user to create account first
@@ -333,6 +387,7 @@ preview: Preview bundle
 preview-short: preview
 previous: Previous
 price-per-unit-above: Price per unit above plan
+priority-support: Priority support for all +30 Capgo plugins
 pro-tip-you-can-copy: 'Pro tip: you can copy the'
 progressive-bundle-number: Progressive bundle number
 progressive-deploy-option: Select progressive deploy option
@@ -347,7 +402,9 @@ resend: Resend
 resend-confirm: Resend confirmation email
 resend-email: Resend Confirmation Email
 reset-password: Reset Password
+reset-spoofed-user: Stop spoofing
 reset-your-password: Reset your password
+retention: Auto delete bundles not used (after x seconds)
 save: Saves
 save-changes: Save Changes
 search-bundle-id: Search by bundle ID
@@ -356,6 +413,15 @@ search-by-device-id-: Search by device ID or action
 search-by-device-id-0: Search by device ID
 search-by-name: Search by name
 see-usage: See usage
+select-channel: Select channel
+select-channel-msg: Please select the channel that you would like to use in this overwrite
+select-default-upload-channel: Please select the default upload channel
+select-default-upload-channel-header: Select default channel
+select-style-of-deletion: Select the style of deletion
+select-style-of-deletion-msg: |-
+  Please select the way that you would like to delete this bundle.
+  It is recomended to go with the normal one.
+  You can read about the difference $1
 select-user-perms: Select user's permissions
 select-user-perms-expanded: Select which permission should the invited user have
 session_key: IvSessionKey
@@ -379,14 +445,17 @@ terms-of-use: Terms of Use
 tests: tests
 thank-you-for-choosi: Thank you for choosing Capgo !
 thank-you-for-sub: Thank You for subscribing to Capgo
-this-page-will-self-: This page will self refresh
+this-page-will-self-: This page will self refresh after you finish onboarding with the CLI
 to: to
 to-open-encrypted-bu: 'To open Encrypted bundle use the command:'
 top-apps-v2: Apps
 trial-left: days left
 trial-plan-expired: Trial Expired
+type-device-id: Enter device ID
+type-device-id-msg: Please enter the ID of the device that you would like to overwrite
 type-new-name: Please type the new api key name
 type-new-org-name: Please type the new name for the organization
+undefined: Undefined
 undefined-fail: Undefined (updates will fail)
 uninstall: Uninstalled
 unknown: unknown
@@ -396,8 +465,10 @@ unlink-bundle: Unlink bundle
 unlink-channel: Unlink channel
 unlink-error: Unlink error, please check console
 unlink-version: Unlink version
+unsafe: Unsafe
 update: Update
 updated-at: Updated at
+updated-default-upload-channel: Updated the default upload channel
 updated-min-version: Updated minimal version
 upgrade: Upgrade
 upload-img-error: Cannot upload picture, please check console
@@ -427,6 +498,7 @@ wrong-name-org-del: 'You have not typed the organization name. You were supposed
 yearly: Yearly
 'yes': 'yes'
 you-can-change-your-: You can change your personal informations here.
+you-cannot-reuse: You cannot reuse this bundle version after deletion
 you-reached-the-limi: Limit reached
 your-settings: Your settings
 your-ussage: 'Your usage:'

@@ -1,5 +1,9 @@
 name: Bump version
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+  
 on:
   push:
     branches:
@@ -26,10 +30,10 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
       - name: Create bump and changelog
         if: github.ref == 'refs/heads/main'
-        run: bun x capacitor-standard-version
+        run: bun x standard-version
       - name: Create bump and changelog
         if: github.ref != 'refs/heads/main'
-        run: bun x capacitor-standard-version --prerelease alpha
+        run: bun x standard-version --prerelease alpha
       - name: Push to origin
         run: |
           CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)

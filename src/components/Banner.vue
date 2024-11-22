@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watchEffect } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { Capacitor } from '@capacitor/core'
+import { useI18n } from 'petite-vue-i18n'
+import { computed, ref, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import { urlToAppId } from '~/services/conversion'
 
@@ -16,7 +16,7 @@ const main = useMainStore()
 const { t } = useI18n()
 const organizationStore = useOrganizationStore()
 
-const route = useRoute()
+const route = useRoute('/app/package/[package]')
 const appId = ref('')
 const organization = ref(null as null | Organization)
 const isOrgOwner = ref(false)
@@ -108,10 +108,7 @@ const bannerColor = computed(() => {
       <a class="text-xl font-bold text-black normal-case">{{ bannerText }}</a>
     </div>
     <div class="navbar-end">
-      <a href="/dashboard/settings/plans" class="btn">{{ isMobile ? t('see-usage') : t('upgrade') }}</a>
-      <!-- <button v-else class="ml-3 mr-3" @click="showInfo">
-        <InformationInfo class="h-10 rounded-full w-10 bg-[#252b36]" />
-      </button> -->
+      <a href="/dashboard/settings/organization/plans" class="btn btn-outline btn-primary">{{ isMobile ? t('see-usage') : t('upgrade') }}</a>
     </div>
   </div>
 </template>

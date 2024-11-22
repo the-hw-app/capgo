@@ -1,6 +1,6 @@
-const plugin = require('tailwindcss/plugin')
 const colors = require('tailwindcss/colors')
 const defaultTheme = require('tailwindcss/defaultTheme')
+const plugin = require('tailwindcss/plugin')
 
 // https://icon-sets.iconify.design/
 const primary = '#515271'
@@ -28,6 +28,7 @@ module.exports = {
           neutral,
           'base-100': base100,
           info,
+          "--border-btn": "0.5px",
         },
       },
     ],
@@ -35,6 +36,7 @@ module.exports = {
   content: [
     './index.html',
     './formkit.config.ts',
+    './formkit.theme.ts',
     './src/**/*.{vue,js,ts,jsx,tsx}',
   ],
   theme: {
@@ -275,11 +277,5 @@ module.exports = {
     require('@tailwindcss/aspect-ratio'),
     require('@tailwindcss/container-queries'),
     require('daisyui'),
-    // add custom variant for expanding sidebar
-    plugin(({ addVariant, e }) => {
-      addVariant('sidebar-expanded', ({ modifySelectors, separator }) => {
-        modifySelectors(({ className }) => `.sidebar-expanded .${e(`sidebar-expanded${separator}${className}`)}`)
-      })
-    }),
   ],
 }

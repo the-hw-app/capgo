@@ -1,5 +1,5 @@
-import { Hono } from 'hono/tiny'
 import type { Context } from '@hono/hono'
+import { Hono } from 'hono/tiny'
 import { useCors } from '../utils/hono.ts'
 import { supabaseAdmin } from '../utils/supabase.ts'
 
@@ -19,7 +19,7 @@ app.get('/', async (c: Context) => {
       .single()
     if (data && !error)
       return c.json(data)
-    console.log('Supabase error:', error)
+    console.log({ requestId: c.get('requestId'), context: 'Supabase error:', error })
     return c.json({
       apps: 750,
       updates: 23500638,

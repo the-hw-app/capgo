@@ -1,9 +1,9 @@
-import { Hono } from 'hono/tiny'
 import type { Context } from '@hono/hono'
 import gplay from 'google-play-scraper'
-import { BRES, middlewareAPISecret } from '../utils/hono.ts'
-import { countries } from '../utils/gplay_categ.ts'
+import { Hono } from 'hono/tiny'
 import { bulkUpdateStoreAppsCF, saveStoreInfoCF } from '../utils/cloudflare.ts'
+import { countries } from '../utils/gplay_categ.ts'
+import { BRES, middlewareAPISecret } from '../utils/hono.ts'
 
 export const app = new Hono()
 
@@ -48,7 +48,7 @@ async function getAppsInfo(appId: string, country: string): Promise<(any)[]> {
 
 async function getSimilar(c: Context, appId: string, country = 'us') {
   try {
-    // console.log('getSimilar', appId, country)
+    // console.log(c.get('requestId'), 'getSimilar', appId, country)
     const res = await getAppsInfo(appId, country)
     if (!res.length)
       return []
@@ -57,11 +57,11 @@ async function getSimilar(c: Context, appId: string, country = 'us') {
       app_id: appId,
       to_get_similar: false,
     })
-    console.log('getSimilar', appId, country, res.length)
+    console.log({ requestId: c.get('requestId'), context: 'getSimilar', id: appId, country, length: res.length })
     return res
   }
   catch (e) {
-    console.log('error getAppInfo', e)
+    console.log({ requestId: c.get('requestId'), context: 'error getAppInfo', error: e })
     await saveStoreInfoCF(c, {
       app_id: appId,
       to_get_similar: false,
@@ -93,7 +93,7 @@ app.post('/', middlewareAPISecret, async (c: Context) => {
       }
     }
     else {
-      console.log('cannot get apps', body)
+      console.log({ requestId: c.get('requestId'), context: 'cannot get apps', body })
       return c.json({ status: 'Cannot get apps' }, 400)
     }
     const toSave = await Promise.all(all)

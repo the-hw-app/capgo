@@ -1,5 +1,5 @@
+import type { ComposerTranslation } from 'petite-vue-i18n'
 import type { FunctionalComponent, Ref, ShallowRef } from 'vue'
-import type { ComposerTranslation } from 'vue-i18n'
 
 export type MobileColType = 'header' | 'title' | 'footer' | 'after' | 'none'
 
@@ -8,6 +8,7 @@ export interface Stat {
   value: string | Ref<string> | number | Ref<number> | undefined
   link?: string
   hoverLabel?: string
+  informationIcon?: FunctionalComponent
 }
 export interface TableSort {
   [key: string]: 'asc' | 'desc' | null

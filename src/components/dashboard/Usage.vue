@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import colors from 'tailwindcss/colors'
-import { useI18n } from 'vue-i18n'
+import { useI18n } from 'petite-vue-i18n'
 import { storeToRefs } from 'pinia'
-import UsageCard from './UsageCard.vue'
-import { useMainStore } from '~/stores/main'
-import { getPlans, getTotalAppStorage } from '~/services/supabase'
-import { getDaysInCurrentMonth } from '~/services/date'
-import type { Database } from '~/types/supabase.types'
+import colors from 'tailwindcss/colors'
+import { computed, ref, watch } from 'vue'
 import { bytesToGb, getDaysBetweenDates, toFixed } from '~/services/conversion'
+import { getDaysInCurrentMonth } from '~/services/date'
+import { getPlans, getTotalAppStorage } from '~/services/supabase'
+import { useMainStore } from '~/stores/main'
+import type { Database } from '~/types/supabase.types'
+import UsageCard from './UsageCard.vue'
 
 const props = defineProps<{
   appId?: string
@@ -157,14 +157,13 @@ if (main.dashboardFetched)
 
 <template>
   <div v-if="!noData || isLoading" class="grid grid-cols-12 gap-6 mb-6" :class="appId && showMobileStats ? 'grid-cols-16' : ''">
-    <!-- TODO: to reactivate when we do the new chart https://github.com/Cap-go/capgo/issues/645 <div v-if="!noData || isLoading" class="grid grid-cols-12 gap-6 mb-6" :class="appId ? 'grid-cols-16' : ''"> -->
     <UsageCard
       v-if="!isLoading" id="mau-stat" :limits="allLimits.mau" :colors="colors.emerald"
       :datas="datas.mau" :title="`${t('montly-active')}`" unit="Users"
     />
     <div
       v-else
-      class="col-span-full h-[460px] flex flex-col items-center justify-center border border-slate-200 rounded-lg bg-white shadow-lg sm:col-span-6 xl:col-span-4 dark:border-slate-900 dark:bg-gray-800"
+      class="col-span-full h-[460px] flex flex-col items-center justify-center border border-slate-300 rounded-lg bg-white shadow-lg sm:col-span-6 xl:col-span-4 dark:border-slate-900 dark:bg-gray-800"
     >
       <Spinner size="w-40 h-40" />
     </div>
@@ -174,7 +173,7 @@ if (main.dashboardFetched)
     />
     <div
       v-else
-      class="col-span-full h-[460px] flex flex-col items-center justify-center border border-slate-200 rounded-lg bg-white shadow-lg sm:col-span-6 xl:col-span-4 dark:border-slate-900 dark:bg-gray-800"
+      class="col-span-full h-[460px] flex flex-col items-center justify-center border border-slate-300 rounded-lg bg-white shadow-lg sm:col-span-6 xl:col-span-4 dark:border-slate-900 dark:bg-gray-800"
     >
       <Spinner size="w-40 h-40" />
     </div>
@@ -184,7 +183,7 @@ if (main.dashboardFetched)
     />
     <div
       v-else
-      class="col-span-full h-[460px] flex flex-col items-center justify-center border border-slate-200 rounded-lg bg-white shadow-lg sm:col-span-6 xl:col-span-4 dark:border-slate-900 dark:bg-gray-800"
+      class="col-span-full h-[460px] flex flex-col items-center justify-center border border-slate-300 rounded-lg bg-white shadow-lg sm:col-span-6 xl:col-span-4 dark:border-slate-900 dark:bg-gray-800"
     >
       <Spinner size="w-40 h-40" />
     </div>

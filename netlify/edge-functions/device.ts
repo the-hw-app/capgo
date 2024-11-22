@@ -1,6 +1,8 @@
-import { sentry } from '@hono/sentry';
-import { handle } from 'https://deno.land/x/hono@v4.4.3/adapter/netlify/mod.ts'
-import { app } from '../../supabase/functions/_backend/public/devices.ts'
+import { sentry } from '@hono/sentry'
+import { logger } from 'hono/logger'
+import { handle } from 'hono/netlify'
+import { requestId } from 'hono/request-id'
+import { app } from '../../supabase/functions/_backend/public/device/index.ts'
 
 const sentryDsn = Deno.env.get('SENTRY_DSN_NETLIFY')
 if (sentryDsn) {
@@ -8,5 +10,8 @@ if (sentryDsn) {
     dsn: sentryDsn,
   }))
 }
+
+app.use('*', logger())
+app.use('*', requestId())
 
 export default handle(app as any)

@@ -1,16 +1,17 @@
 <script setup lang="ts">
+import type { User } from '@supabase/supabase-js'
+import { useI18n } from 'petite-vue-i18n'
 import { ref, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { User } from '@supabase/supabase-js'
-import { autoAuth, useSupabase } from '~/services/supabase'
-import Spinner from '~/components/Spinner.vue'
-import { useMainStore } from '~/stores/main'
 import Navbar from '~/components/Navbar.vue'
+import Spinner from '~/components/Spinner.vue'
+import { autoAuth, useSupabase } from '~/services/supabase'
 import { useDisplayStore } from '~/stores/display'
+import { useMainStore } from '~/stores/main'
 
 const { t } = useI18n()
 const supabase = useSupabase()
-const route = useRoute()
+const route = useRoute('/onboarding/verify_email')
 const router = useRouter()
 const main = useMainStore()
 

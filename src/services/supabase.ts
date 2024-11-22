@@ -1,8 +1,8 @@
-import ky from 'ky'
-import dayjs from 'dayjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { format, parse } from '@std/semver'
 import { createClient } from '@supabase/supabase-js'
-import { coerce as semverCoerce } from 'semver'
+import dayjs from 'dayjs'
+import ky from 'ky'
 
 // import { Http } from '@capacitor-community/http'
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
@@ -20,7 +20,7 @@ interface CapgoConfig {
   hostWeb: string
 }
 
-function getLocalConfig() {
+export function getLocalConfig() {
   return {
     supaHost: import.meta.env.VITE_SUPABASE_URL as string,
     supaKey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
@@ -38,7 +38,7 @@ export async function getRemoteConfig() {
   const data = await ky
     .get(`${defaultApiHost}/private/config`)
     .then(res => res.json<CapgoConfig>())
-    .then(data => ({ ...data, ...localConfig } as CapgoConfig))
+    .then(d => ({ ...localConfig, ...d } as CapgoConfig))
     .catch(() => {
       console.log('Local config', localConfig)
       return localConfig as CapgoConfig
@@ -113,8 +113,30 @@ export async function downloadUrl(provider: string, userId: string, appId: strin
     storage_provider: provider,
     id,
   }
-  const res = await useSupabase().functions.invoke('private/download_link', { body: JSON.stringify(data) })
-  return res.data.url
+  const { data: currentSession } = await useSupabase().auth.getSession()!
+  if (!currentSession.session)
+    return ''
+
+  const currentJwt = currentSession.session.access_token
+  const res = await ky.post(`${defaultApiHost}/private/download_link`, {
+    json: data,
+    headers: {
+      Authorization: `Bearer ${currentJwt}`,
+    },
+  }).json<{ url: string }>()
+  return res.url
+}
+
+// do a function to get get_process_cron_stats_job_info for supabase
+
+export async function getProcessCronStatsJobInfo() {
+  const { data, error } = await useSupabase()
+    .rpc('get_process_cron_stats_job_info')
+    .single()
+  if (error)
+    throw new Error(error.message)
+
+  return data
 }
 
 export async function autoAuth(route: RouteLocationNormalizedLoaded) {
@@ -258,7 +280,7 @@ export async function getCapgoVersion(appId: string, versionId: string | null | 
   const nativePackages: NativePackage[] = (data?.native_packages || []) as any as NativePackage[]
   for (const pkg of nativePackages) {
     if (pkg && pkg.name === '@capgo/capacitor-updater') {
-      return semverCoerce(pkg.version)?.version ?? ''
+      return format(parse(pkg.version.replace('^', '').replace('~', '')))
     }
   }
   return ''

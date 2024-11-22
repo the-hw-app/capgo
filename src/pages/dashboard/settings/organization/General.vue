@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { storeToRefs } from 'pinia'
-import { toast } from 'vue-sonner'
-import { FunctionsHttpError } from '@supabase/supabase-js'
 import { FormKit } from '@formkit/vue'
-import { useOrganizationStore } from '~/stores/organization'
-import { useDisplayStore } from '~/stores/display'
-import { useSupabase } from '~/services/supabase'
-import { pickPhoto, takePhoto } from '~/services/photos'
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import iconEmail from '~icons/oui/email?raw'
 import iconName from '~icons/ph/user?raw'
+import { useI18n } from 'petite-vue-i18n'
+import { storeToRefs } from 'pinia'
+import { computed, onMounted, ref } from 'vue'
+import { toast } from 'vue-sonner'
+import { pickPhoto, takePhoto } from '~/services/photos'
+import { useSupabase } from '~/services/supabase'
+import { useDisplayStore } from '~/stores/display'
+import { useOrganizationStore } from '~/stores/organization'
 
 const { t } = useI18n()
 
@@ -214,93 +214,98 @@ async function deleteOrganization() {
 </script>
 
 <template>
-  <div class="h-full p-8 overflow-hidden max-h-fit grow md:pb-0">
-    <!-- TODO Classes are not working -->
-    <FormKit id="update-org" type="form" :actions="false" class="min-h-[100%] flex flex-col justify-between" style="min-height: 100%; display: flex; flex-direction: column;" @submit="saveChanges">
-      <div>
-        <h2 class="mt-2 mb-5 text-2xl font-bold text-slate-800 dark:text-white">
-          {{ t('general-information') }}
-        </h2>
-        <div>{{ t('modify-org-info') }}</div>
-        <section class="mt-4">
-          <div class="flex items-center">
-            <div class="mr-4">
-              <img
-                v-if="!!currentOrganization?.logo"
-                id="org-avatar" class="object-cover w-20 h-20 mask mask-squircle" :src="currentOrganization.logo"
-                width="80" height="80" alt="User upload"
-              >
-              <div v-else class="flex items-center justify-center w-20 h-20 text-4xl border border-black rounded-full dark:border-white">
-                <p>{{ acronym }}</p>
+  <div>
+    <div class="h-full pb-8 max-h-fit grow md:pb-0">
+      <FormKit id="update-org" type="form" :actions="false" @submit="saveChanges">
+        <div class="p-6 space-y-6">
+          <h2 class="mb-5 text-2xl font-bold text-slate-800 dark:text-white">
+            {{ t('general-information') }}
+          </h2>
+          <div clas="dark:text-gray-100">
+            {{ t('modify-org-info') }}
+          </div>
+          <section>
+            <div class="flex items-center">
+              <div class="mr-4">
+                <img
+                  v-if="!!currentOrganization?.logo"
+                  id="org-avatar" class="object-cover w-20 h-20 mask mask-squircle" :src="currentOrganization.logo"
+                  width="80" height="80" alt="User upload"
+                >
+                <div v-else class="p-6 text-xl bg-gray-700 mask mask-squircle">
+                  <span class="font-medium text-gray-300">
+                    {{ acronym }}
+                  </span>
+                </div>
               </div>
+              <button id="change-org-pic" type="button" class="px-3 py-2 text-xs font-medium text-center text-black border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white border-slate-500 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800" @click="presentActionSheet">
+                {{ t('change') }}
+              </button>
             </div>
-            <button id="change-org-pic" type="button" class="px-3 py-2 text-xs font-medium text-center text-black border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-white border-grey focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800" @click="presentActionSheet">
-              {{ t('change') }}
-            </button>
+          </section>
+          <div class="mt-3 mb-6">
+            <FormKit
+              type="text"
+              name="orgName"
+              autocomplete="given-name"
+              :prefix-icon="iconName"
+              :disabled="!hasOrgPerm"
+              :value="orgName"
+              validation="required:trim"
+              enterkeyhint="next"
+              autofocus
+              :label="t('organization-name')"
+            />
           </div>
-        </section>
-        <div class="mt-3 mb-6">
-          <FormKit
-            type="text"
-            name="orgName"
-            autocomplete="given-name"
-            :prefix-icon="iconName"
-            :disabled="!hasOrgPerm"
-            :value="orgName"
-            validation="required:trim"
-            enterkeyhint="next"
-            autofocus
-            :label="t('organization-name')"
-          />
-        </div>
-        <div class="mt-3 mb-6">
-          <FormKit
-            type="email"
-            name="email"
-            :prefix-icon="iconEmail"
-            autocomplete="given-name"
-            :disabled="!hasOrgPerm"
-            :value="email"
-            validation="required:trim" enterkeyhint="next"
-            autofocus
-            :label="t('organization-email')"
-          />
-        </div>
-      </div>
-      <footer style="margin-top: auto">
-        <div class="flex flex-col px-6 py-5 border-t border-slate-200">
-          <div class="flex self-end">
-            <button
-              class="p-2 mb-2 mr-4 text-white border border-red-400 rounded-lg btn hover:bg-red-600"
-              color="secondary"
-              shape="round"
-              type="button"
-              :class="{
-                invisible: !canDeleteOrg(),
-              }"
-              @click="() => deleteOrganization()"
-            >
-              <span v-if="!isLoading" class="rounded-4xl">
-                {{ t('delete-org') }}
-              </span>
-              <Spinner v-else size="w-4 h-4" class="px-4 pt-0 pb-0" color="fill-gray-100 text-gray-200 dark:text-gray-600" />
-            </button>
-            <button
-              id="save-changes"
-              class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
-              type="submit"
-              color="secondary"
-              shape="round"
-            >
-              <span v-if="!isLoading" class="rounded-4xl">
-                {{ t('save-changes') }}
-              </span>
-              <Spinner v-else size="w-4 h-4" class="px-4 pt-0 pb-0" color="fill-gray-100 text-gray-200 dark:text-gray-600" />
-            </button>
+          <div class="mt-3 mb-6">
+            <FormKit
+              type="email"
+              name="email"
+              :prefix-icon="iconEmail"
+              autocomplete="given-name"
+              :disabled="!hasOrgPerm"
+              :value="email"
+              validation="required:trim" enterkeyhint="next"
+              autofocus
+              :label="t('organization-email')"
+            />
           </div>
         </div>
-      </footer>
-    </FormKit>
+        <footer style="margin-top: auto">
+          <div class="flex flex-col px-6 py-5 border-t border-slate-300">
+            <div class="flex self-end">
+              <button
+                class="p-2 mb-2 mr-4 text-white border border-red-400 rounded-lg btn hover:bg-red-600"
+                color="secondary"
+                shape="round"
+                type="button"
+                :class="{
+                  invisible: !canDeleteOrg(),
+                }"
+                @click="() => deleteOrganization()"
+              >
+                <span v-if="!isLoading" class="rounded-4xl">
+                  {{ t('delete-org') }}
+                </span>
+                <Spinner v-else size="w-4 h-4" class="px-4 pt-0 pb-0" color="fill-gray-100 text-gray-200 dark:text-gray-600" />
+              </button>
+              <button
+                id="save-changes"
+                class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+                type="submit"
+                color="secondary"
+                shape="round"
+              >
+                <span v-if="!isLoading" class="rounded-4xl">
+                  {{ t('save-changes') }}
+                </span>
+                <Spinner v-else size="w-4 h-4" class="px-4 pt-0 pb-0" color="fill-gray-100 text-gray-200 dark:text-gray-600" />
+              </button>
+            </div>
+          </div>
+        </footer>
+      </FormKit>
+    </div>
   </div>
 </template>
 

@@ -1,9 +1,11 @@
 /* eslint-disable node/prefer-global/process */
+import { env } from 'node:process'
 import { config } from 'dotenv'
+import keys from '../configs.json'
 
 config()
 
-export const branch = process.env.ENV || process.env.BRANCH || 'main'
+export const branch = env.ENV || env.BRANCH || 'main'
 console.log('Branch', branch)
 
 const keys = {

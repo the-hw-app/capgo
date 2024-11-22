@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { setErrors } from '@formkit/core'
 import { FormKit, FormKitMessages } from '@formkit/vue'
-import { toast } from 'vue-sonner'
-import { useRouter } from 'vue-router'
-import { deleteUser, hashEmail, useSupabase } from '~/services/supabase'
-import { hideLoader } from '~/services/loader'
 import iconEmail from '~icons/oui/email?raw'
 import iconPassword from '~icons/ph/key?raw'
+import { useI18n } from 'petite-vue-i18n'
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
+import { hideLoader } from '~/services/loader'
+import { deleteUser, hashEmail, useSupabase } from '~/services/supabase'
 import { useDisplayStore } from '~/stores/display'
 
 const supabase = useSupabase()
@@ -126,7 +126,7 @@ onMounted (() => {
       </div>
 
       <div class="relative max-w-md mx-auto mt-8 md:mt-4">
-        <div class="overflow-hidden bg-white rounded-md shadow-md">
+        <div class="overflow-hidden bg-white rounded-md shadow-md dark:bg-slate-800">
           <div class="px-4 py-6 sm:px-8 sm:py-7">
             <FormKit id="login-account" type="form" :actions="false" @submit="submit">
               <div class="space-y-5">
@@ -175,12 +175,12 @@ onMounted (() => {
 
                 <div class="text-center">
                   <p class="text-base text-gray-600">
-                    {{ t('dont-have-an-account') }} <br> <router-link
-                      to="/register"
+                    {{ t('dont-have-an-account') }} <br> <a
+                      href="https://capgo.app/register/"
                       class="font-medium text-orange-500 transition-all duration-200 hover:text-orange-600 hover:underline"
                     >
                       {{ t('create-a-free-accoun') }}
-                    </router-link>
+                    </a>
                   </p>
                   <p class="pt-2 text-gray-300">
                     {{ version }}

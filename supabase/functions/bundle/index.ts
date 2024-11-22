@@ -1,6 +1,8 @@
 import { sentry } from '@hono/sentry'
+import { logger } from 'hono/logger'
+import { requestId } from 'hono/request-id'
 import { Hono } from 'hono/tiny'
-import { app } from '../_backend/public/bundles.ts'
+import { app } from '../_backend/public/bundle/index.ts'
 
 const functionName = 'bundle'
 const appGlobal = new Hono().basePath(`/${functionName}`)
@@ -11,6 +13,9 @@ if (sentryDsn) {
     dsn: sentryDsn,
   }))
 }
+
+appGlobal.use('*', logger())
+appGlobal.use('*', requestId())
 
 appGlobal.route('/', app)
 

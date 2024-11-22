@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { setErrors } from '@formkit/core'
 import { FormKit, FormKitMessages } from '@formkit/vue'
-import { toast } from 'vue-sonner'
-import { useSupabase } from '~/services/supabase'
 import iconEmail from '~icons/oui/email?raw'
-import iconName from '~icons/ph/user?raw'
 import iconPassword from '~icons/ph/key?raw'
-import { reflioLoader } from '~/services/reflio'
+import iconName from '~icons/ph/user?raw'
+import { useI18n } from 'petite-vue-i18n'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
+import { openMessenger } from '~/services/bento'
+import { useSupabase } from '~/services/supabase'
 
 const router = useRouter()
 const supabase = useSupabase()
@@ -17,7 +17,9 @@ const { t } = useI18n()
 
 const isLoading = ref(false)
 
-reflioLoader()
+function openSupport() {
+  openMessenger()
+}
 
 async function submit(form: { first_name: string, last_name: string, password: string, email: string }) {
   if (isLoading.value)
@@ -54,12 +56,6 @@ async function submit(form: { first_name: string, last_name: string, password: s
     // supabase auth config
     // http://localhost:5173/onboarding/verify_email,http://localhost:5173/forgot_password?step=2,https://capgo.app/onboarding/verify_email,https://capgo.app/forgot_password?step=2,https://capgo.app/onboarding/first_password,https://development.capgo.app/onboarding/verify_email,https://development.capgo.app/forgot_password?step=2
   )
-  try {
-    await window.Reflio.signup(form.email)
-  }
-  catch (error) {
-    console.error(error)
-  }
   isLoading.value = false
   if (error || !user) {
     setErrors('register-account', [error?.message || 'user not found'], {})
@@ -81,7 +77,7 @@ async function submit(form: { first_name: string, last_name: string, password: s
       </div>
 
       <div class="relative max-w-2xl mx-auto mt-4 md:mt-8">
-        <div class="overflow-hidden bg-white rounded-md shadow-md">
+        <div class="overflow-hidden bg-white rounded-md shadow-md dark:bg-slate-800">
           <div class="px-4 py-6 sm:px-8 sm:py-7">
             <FormKit id="register-account" type="form" :actions="false" @submit="submit">
               <FormKitMessages />
@@ -156,17 +152,20 @@ async function submit(form: { first_name: string, last_name: string, password: s
 
                 <div class="col-span-2 text-center">
                   <p class="text-base text-gray-600">
-                    <a href="/login" title="" class="text-sm font-medium text-orange-400 transition-all duration-200 focus:text-orange-500 hover:text-orange-500 hover:underline">{{ t("already-account") }}</a>
+                    <a href="/login" title="" class="text-sm font-medium text-orange-500 transition-all duration-200 focus:text-orange-600 hover:text-orange-600 hover:underline">{{ t("already-account") }}</a>
                   </p>
                 </div>
               </div>
             </FormKit>
           </div>
         </div>
-        <section class="flex flex-col mt-6 md:flex-row md:items-center items-left">
+        <section class="flex flex-col items-center mt-6">
           <div class="mx-auto">
             <LangSelector />
           </div>
+          <button class="p-2 mt-3 text-gray-500 rounded-md hover:bg-gray-300" @click="openSupport">
+            {{ t("support") }}
+          </button>
         </section>
       </div>
     </div>

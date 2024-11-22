@@ -1,9 +1,9 @@
-import ky from 'ky'
-import { Hono } from 'hono/tiny'
 import type { Context } from '@hono/hono'
-import { BRES, middlewareAPISecret } from '../utils/hono.ts'
-import { categories } from '../utils/gplay_categ.ts'
+import { Hono } from 'hono/tiny'
+import ky from 'ky'
 import { getAppsToProcessCF } from '../utils/cloudflare.ts'
+import { categories } from '../utils/gplay_categ.ts'
+import { BRES, middlewareAPISecret } from '../utils/hono.ts'
 
 const toGetFramwork = 500
 const toGetInfo = 500
@@ -29,15 +29,15 @@ app.post('/', middlewareAPISecret, async (c: Context) => {
     const all = []
     const pageSize = 10
     const pageSizeLittle = 2
-    console.log('appsToGetFramework', appsToGetFramework?.length || 0)
-    console.log('appsToGetInfo', appsToGetInfo?.length || 0)
-    console.log('appsToGetSimilar', appsToGetSimilar?.length || 0)
-    console.log('appsToGetTop categories', categories?.length || 0)
-    console.log('appsToGetTop total', (categories?.length || 0))
-    console.log('appsToGetTop total result', (categories?.length || 0) * 500)
+    console.log({ requestId: c.get('requestId'), context: 'appsToGetFramework', appsToGetFramework: appsToGetFramework?.length || 0 })
+    console.log({ requestId: c.get('requestId'), context: 'appsToGetInfo', appsToGetInfo: appsToGetInfo?.length || 0 })
+    console.log({ requestId: c.get('requestId'), context: 'appsToGetSimilar', appsToGetSimilar: appsToGetSimilar?.length || 0 })
+    console.log({ requestId: c.get('requestId'), context: 'appsToGetTop categories', categories: categories?.length || 0 })
+    console.log({ requestId: c.get('requestId'), context: 'appsToGetTop total', total: (categories?.length || 0) })
+    console.log({ requestId: c.get('requestId'), context: 'appsToGetTop total result', total: (categories?.length || 0) * 500 })
     // split countries by 10 to batch send to netlify
     for (let i = 0; i < categories.length; i++) {
-      console.log('category', categories[i])
+      console.log({ requestId: c.get('requestId'), context: 'category', category: categories[i] })
       all.push(ky.post(`${baseApi}/get_top_apk-background`, {
         json: {
           category: categories[i],
@@ -72,7 +72,7 @@ app.post('/', middlewareAPISecret, async (c: Context) => {
         // all.push(ky.post('https://netlify.capgo.app/get_framework-background', {
         //   appIds: appsSimilarBatch.map(app => app.app_id),
         // }))
-        console.log('appsSimilarBatch', appsSimilarBatch.length)
+        console.log({ requestId: c.get('requestId'), context: 'appsSimilarBatch', appsSimilarBatch: appsSimilarBatch.length })
         all.push(ky.post(`${baseApi}/get_similar_app-background`, {
           json: {
             appIds: appsSimilarBatch.map(app => app.app_id),

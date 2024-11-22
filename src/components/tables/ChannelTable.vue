@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import type { Ref } from 'vue'
+import type { TableColumn } from '../comp_def'
+import IconPlus from '~icons/heroicons/plus?width=2em&height=2em'
+import IconTrash from '~icons/heroicons/trash?raw'
+import { useI18n } from 'petite-vue-i18n'
+import { storeToRefs } from 'pinia'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { storeToRefs } from 'pinia'
-import type { TableColumn } from '../comp_def'
-import type { Database } from '~/types/supabase.types'
+import { appIdToUrl } from '~/services/conversion'
 import { formatDate } from '~/services/date'
 import { useSupabase } from '~/services/supabase'
-import IconTrash from '~icons/heroicons/trash?raw'
-import IconPlus from '~icons/heroicons/plus?width=2em&height=2em'
 import { useDisplayStore } from '~/stores/display'
 import { useMainStore } from '~/stores/main'
-import { appIdToUrl } from '~/services/conversion'
 import { useOrganizationStore } from '~/stores/organization'
+import type { Database } from '~/types/supabase.types'
 
 const props = defineProps<{
   appId: string
@@ -28,10 +28,10 @@ interface Channel {
   version: {
     name: string
     created_at: string
-    minUpdateVersion: string | null
+    min_update_version: string | null
   }
-  secondVersion: {
-    minUpdateVersion: string | null
+  second_version: {
+    min_update_version: string | null
   }
   misconfigured: boolean | undefined
 }
@@ -127,15 +127,15 @@ async function getData() {
           version (
             name,
             created_at,
-            minUpdateVersion
+            min_update_version
           ),
-          secondVersion (
-            minUpdateVersion
+          second_version (
+            min_update_version
           ),
           created_at,
           updated_at,
-          disableAutoUpdate,
-          enableAbTesting,
+          disable_auto_update,
+          enable_ab_testing,
           enable_progressive_deploy
           `, { count: 'exact' })
       .eq('app_id', props.appId)
@@ -162,16 +162,16 @@ async function getData() {
     // This will trigger if the channel disables updates based on metadata + if the metadata is undefined
     let anyMisconfigured = false
     const channels = dataVersions
-      .filter(e => e.disableAutoUpdate === 'version_number')
+      .filter(e => e.disable_auto_update === 'version_number')
       .map(e => e as any as Element)
 
     for (const channel of channels) {
-      if (channel.version.minUpdateVersion === null) {
+      if (channel.version.min_update_version === null) {
         channel.misconfigured = true
         anyMisconfigured = true
       }
 
-      if ((channel.enable_progressive_deploy || channel.enableAbTesting) && channel.secondVersion.minUpdateVersion === null) {
+      if ((channel.enable_progressive_deploy || channel.enable_ab_testing) && channel.second_version.min_update_version === null) {
         channel.misconfigured = true
         anyMisconfigured = true
       }

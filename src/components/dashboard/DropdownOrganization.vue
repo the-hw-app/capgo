@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-import { onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import type { Organization } from '~/stores/organization'
-import { useOrganizationStore } from '~/stores/organization'
-import { useDisplayStore } from '~/stores/display'
-import { useSupabase } from '~/services/supabase'
-import { useMainStore } from '~/stores/main'
 import Plus from '~icons/heroicons/plus'
 import IconDown from '~icons/material-symbols/keyboard-arrow-down-rounded'
+import { useI18n } from 'petite-vue-i18n'
+import { storeToRefs } from 'pinia'
+import { onMounted } from 'vue'
+import { toast } from 'vue-sonner'
+import { useSupabase } from '~/services/supabase'
+import { useDisplayStore } from '~/stores/display'
+import { useMainStore } from '~/stores/main'
+import type { Organization } from '~/stores/organization'
+import { useOrganizationStore } from '~/stores/organization'
 
 const router = useRouter()
 const organizationStore = useOrganizationStore()
@@ -18,7 +18,7 @@ const displayStore = useDisplayStore()
 const { t } = useI18n()
 const supabase = useSupabase()
 const main = useMainStore()
-const dropdown = ref<HTMLElement | null>(null)
+const dropdown = useTemplateRef('dropdown')
 
 onClickOutside(dropdown, () => closeDropdown())
 
@@ -158,20 +158,15 @@ async function createNewOrg() {
 
 <template>
   <div>
-    <details v-show="currentOrganization" ref="dropdown" class="dropdown dropdown-end">
-      <summary class="m-1 btn btn-outline btn-sm text-slate-800 dark:text-white">
-        <div class="hidden md:block">
+    <details v-show="currentOrganization" ref="dropdown" class="w-full dropdown dropdown-end">
+      <summary class="justify-between w-full btn btn-outline btn-sm text-slate-300 dark:text-white">
+        <div class="w-4/5 text-left truncate">
           {{ currentOrganization?.name }}
         </div>
-        <div class="block md:hidden">
-          {{ currentOrganization?.name.substring(0, 3) }}..
-        </div>
-        <div class="flex items-center truncate">
-          <IconDown class="w-6 h-6 ml-1 fill-current text-slate-400" />
-        </div>
+        <IconDown class="flex-shrink-0 w-6 h-6 ml-1 fill-current text-slate-400" />
       </summary>
       <ul class="dropdown-content dark:bg-base-100 bg-white rounded-box z-[1] w-52 p-2 shadow" @click="closeDropdown()">
-        <li v-for="org in organizationStore.organizations" :key="org.gid">
+        <li v-for="org in organizationStore.organizations" :key="org.gid" class="block px-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">
           <a
             class="block px-4 py-2 text-center hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
             @click="onOrganizationClick(org)"
@@ -179,7 +174,7 @@ async function createNewOrg() {
             {{ org.name }}
           </a>
         </li>
-        <li>
+        <li class="block px-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">
           <a
             class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
             @click="createNewOrg"

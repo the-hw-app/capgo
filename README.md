@@ -11,6 +11,7 @@
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=Cap-go_capgo&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=Cap-go_capgo)
 [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=Cap-go_capgo&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=Cap-go_capgo)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=Cap-go_capgo&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=Cap-go_capgo)
+![Known Vulnerabilities](https://snyk.io/test/github/Cap-go/capgo/badge.svg)
 ![GitHub license](https://img.shields.io/github/license/Cap-go/capgo)
 [![Bump version](https://github.com/Cap-go/capgo/actions/workflows/bump_version.yml/badge.svg)](https://github.com/Cap-go/capgo/actions/workflows/bump_version.yml)
 [![Build source code and send to Capgo](https://github.com/Cap-go/capgo/actions/workflows/build.yml/badge.svg)](https://github.com/Cap-go/capgo/actions/workflows/build.yml)
@@ -43,7 +44,6 @@
 
 https://github.com/Cap-go/capacitor-updater/wiki/Capgo-Sandbox-App
 
-
 - [Changing supabase](supabase/migration_guide.md)
 
 ## Plugins
@@ -51,7 +51,7 @@ https://github.com/Cap-go/capacitor-updater/wiki/Capgo-Sandbox-App
 All official plugin are install and preconfigured
 
 - [Action Sheet](https://github.com/ionic-team/capacitor-plugins/tree/main/action-sheet) - Provides access to native Action Sheets.
-- [App](https://github.com/ionic-team/capacitor-plugins/tree/main/app) - Handles high level App state and events. 
+- [App](https://github.com/ionic-team/capacitor-plugins/tree/main/app) - Handles high level App state and events.
 - [App Launcher](https://github.com/ionic-team/capacitor-plugins/tree/main/app-launcher) - Allows to check if an app can be opened and open it.
 - [Browser](https://github.com/ionic-team/capacitor-plugins/tree/main/browser) - Provides the ability to open an in-app browser and subscribe to browser events.
 - [Camera](https://github.com/ionic-team/capacitor-plugins/tree/main/camera) - Provides the ability to take a photo with the camera or choose an existing one from the photo album.
@@ -86,7 +86,7 @@ All official plugin are install and preconfigured
 - [TypeScript](https://www.typescriptlang.org/)
 - [bun](https://bun.sh/) - fast javascipt runtime, package manager, bundler, test runner an all-in-one toolkit
 - [critters](https://github.com/GoogleChromeLabs/critters) - Critical CSS
-- [Netlify](https://www.netlify.com/) - zero-config deployment
+- [Cloudflare](https://www.cloudflare.com/) - zero-config deployment
 - [VS Code Extensions](./.vscode/extensions.json)
   - [Vite](https://marketplace.visualstudio.com/items?itemName=antfu.vite) - Fire up Vite server automatically
   - [Volar](https://marketplace.visualstudio.com/items?itemName=johnsoncodehk.volar) - Vue 3 `<script setup>` IDE support
@@ -97,21 +97,23 @@ All official plugin are install and preconfigured
 
 ## Usage
 
-### Build
+### Deploy on Cloudflare Pages
 
-To build the App in mobile, run
+use the CLI to deploy preprod
 
 ```bash
-bun install
-bun mobile
+bun run dev-build
+# then deploy
+bun run deploy:cloudflare_frontend:preprod
 ```
 
-And you will see the generated file in `dist` that ready to be served.
+or Prod
 
-### Deploy on Netlify
-
-Go to [Netlify](https://app.netlify.com/start) and select your clone, `OK` along the way, and your App will be live in a minute.
-
+```bash
+bun run build
+# then deploy
+bun run deploy:cloudflare_frontend:prod
+```
 
 ### Development
 
@@ -127,7 +129,6 @@ You can install the `supabase` CLI globally with `bun install supabase -g` and y
 Alternatively, you can install the CLI inside this repo with `bun install supabase --save-dev` but to invoke it use: `./node_modules/supabase/bin/supabase`.
 
 The rest of this guide assumes that you installed the `supabase` CLI globally.
-
 
 #### Start Supabase DB Locally
 
@@ -150,8 +151,6 @@ Started supabase local development setup.
 service_role key: xxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXx.xxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxXxxxxxXxxxxxX
 ```
 
-
-
 #### Start Supabase DB and Functions Locally
 
 You need make sure Docker is running.
@@ -162,8 +161,7 @@ bun backend
 
 #### Start Frontend Locally
 
-Before starting the frontend, make sure you replace the value of `supa_anon.local` inside the file `configs.json` with the value of `anon key`. If `supabase` is already running, you can also obtain `anon key` from the output of `supabase status`.  
-
+Before starting the frontend, make sure you replace the value of `supa_anon.local` inside the file `configs.json` with the value of `anon key`. If `supabase` is already running, you can also obtain `anon key` from the output of `supabase status`.
 
 In another terminal, run the server with the necessary Netlify functions:
 
@@ -188,12 +186,63 @@ If the data is not fresh just reset the db with `supabase db reset`. The seed ha
 The *admin user* has admininstrative rights so he can impersonate other users.
 You can find the menu for that in the account section.
 
-
 #### Supabase DB Reset
 
 Make sure you have Docker running.
 
 This will seed the DB with demo data again.
 ```bash
-bun reset
+supabase db reset
 ```
+
+### Deploy Supabase self hosted
+
+To deploy the supabase instance self hosted, use the [Supabase offical guide](https://supabase.com/docs/guides/self-hosting).
+
+### Deploy Supabase cloud
+
+To deploy the supabase instance on cloud, you need a paid account at $25/month.
+
+Link the project to the cloud with the following command:
+
+```bash
+supabase link
+```
+https://supabase.com/docs/reference/cli/supabase-link
+
+Then you need to push the migrations to the cloud with the following command:
+
+```bash
+supabase db push --linked
+```
+https://supabase.com/docs/reference/cli/supabase-migration-up
+
+And seed the DB with demo data:
+
+```bash
+supabase seed buckets
+```
+https://supabase.com/docs/reference/cli/supabase-seed-buckets
+
+Seed the secret for functions:
+
+```bash
+supabase secrets set --env-file supabase/functions/.env
+```
+
+Push the functions to the cloud:
+
+```bash
+supabase functions deploy
+```
+
+### Build
+
+To build the webApp in mobile, to push to store, run
+
+```bash
+bun install
+bun mobile
+```
+
+And you will see the generated file in `dist` that ready to be served.

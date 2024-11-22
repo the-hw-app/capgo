@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import Sidebar from '../components/Sidebar.vue'
 import Navbar from '../components/Navbar.vue'
+import Sidebar from '../components/Sidebar.vue'
 
 const sidebarOpen = ref(false)
 </script>
@@ -15,7 +15,7 @@ const sidebarOpen = ref(false)
       <!-- Site header -->
       <Navbar :sidebar-open="sidebarOpen" @toggle-sidebar="sidebarOpen = !sidebarOpen" />
       <main class="w-full h-full overflow-hidden">
-        <RouterView class="h-full overflow-y-auto" />
+        <RouterView class="h-full overflow-y-auto grow" />
       </main>
     </div>
   </div>

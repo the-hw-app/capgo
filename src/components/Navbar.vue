@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { onMounted, ref } from 'vue'
-import { getOrgs } from '../services/supabase'
-import UserMenu from '../components/dashboard/DropdownProfile.vue'
-import Banner from './Banner.vue'
-import { useMainStore } from '~/stores/main'
-import { useDisplayStore } from '~/stores/display'
+import { Capacitor } from '@capacitor/core'
 import IconBack from '~icons/material-symbols/arrow-back-ios-rounded'
 import IconMenu from '~icons/material-symbols/menu-rounded'
+import { useI18n } from 'petite-vue-i18n'
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useDisplayStore } from '~/stores/display'
+import { useMainStore } from '~/stores/main'
+import { getOrgs } from '../services/supabase'
+import Banner from './Banner.vue'
 
 const props = defineProps({
   sidebarOpen: {
@@ -19,6 +19,7 @@ const props = defineProps({
 
 defineEmits(['toggleSidebar'])
 const main = useMainStore()
+const isMobile = ref(Capacitor.isNativePlatform())
 
 const orgs = ref()
 onMounted(async () => {
@@ -39,17 +40,15 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <header class="border-b border-slate-200 bg-white/90 backdrop-blur-xl dark:bg-gray-900/90">
+  <header class="bg-slate-100 backdrop-blur-xl dark:bg-slate-900" :class="{ 'border-b border-slate-200 dark:border-slate-600': displayStore.NavTitle, 'border-b md:border-none border-slate-200 dark:border-slate-600': !displayStore.NavTitle }">
     <div class="px-2 lg:px-8 sm:px-6">
       <div class="relative flex items-center justify-between h-16 -mb-px">
         <!-- Header: Left side -->
-        <div class="flex">
-          <div v-if="displayStore.NavTitle" class="pr-2">
-            <button class="flex" @click="back()">
-              <IconBack
-                class="w-6 h-6 fill-current text-slate-500 dark:text-white hover:text-slate-600 dark:hover:text-slate-50"
-              />
-              <span class="hidden text-dark md:block dark:text-white">{{ t('button-back') }}</span>
+        <div class="flex items-center">
+          <div v-if="displayStore.NavTitle && isMobile" class="pr-2">
+            <button class="flex p-2 rounded hover:bg-slate-600 dark:hover:bg-slate-50 hover:text-white dark:hover:text-slate-500 text-slate-500 dark:text-white" @click="back()">
+              <IconBack class="w-6 h-6 fill-current" />
+              <span class="hidden md:block">{{ t('button-back') }}</span>
             </button>
           </div>
           <!-- Hamburger button -->
@@ -62,18 +61,15 @@ const { t } = useI18n()
           </button>
         </div>
 
-        <div class="lg:absolute lg:inset-y-5 lg:left-1/2 lg:-translate-x-1/2">
-          <div class="flex-shrink-0 font-bold text-md text-dark dark:text-white">
+        <!-- Centered title -->
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div class="font-bold text-md text-dark dark:text-white">
             {{ displayStore.NavTitle }}
           </div>
         </div>
-        <!-- Header: Right side -->
-        <div v-if="main.user" class="flex items-center space-x-3">
-          <div class="flex md:mr-2">
-            <dropdown-organization />
-            <UserMenu align="right" class="ml-2" />
-          </div>
-        </div>
+
+        <!-- Placeholder for right side to maintain layout -->
+        <div class="w-[72px] lg:w-[88px]" />
       </div>
     </div>
     <Banner />

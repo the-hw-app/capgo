@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import dayjs from 'dayjs'
-import { useI18n } from 'vue-i18n'
+import { useI18n } from 'petite-vue-i18n'
 import { useMainStore } from '~/stores/main'
 
 const main = useMainStore()
@@ -9,7 +9,7 @@ const dayPeriod = dayjs().hour() < 12 ? 'morning' : 'afternoon'
 </script>
 
 <template>
-  <div class="relative mb-8 overflow-hidden rounded-sm bg-blue-200 p-4 sm:p-6">
+  <div class="relative mb-8 overflow-hidden rounded-lg bg-blue-200 p-4 sm:p-6">
     <!-- Background illustration -->
     <div class="pointer-events-none absolute right-0 top-0 mr-16 hidden -mt-4 xl:block" aria-hidden="true">
       <svg width="319" height="198" xmlns:xlink="http://www.w3.org/1999/xlink">

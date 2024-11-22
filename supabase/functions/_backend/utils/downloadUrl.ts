@@ -1,10 +1,24 @@
 import type { Context } from '@hono/hono'
+import type { Database } from './supabase.types.ts'
+import { getRuntimeKey } from 'hono/adapter'
 import { s3 } from './s3.ts'
 import { supabaseAdmin } from './supabase.ts'
-import type { Database } from './supabase.types.ts'
 
 const EXPIRATION_SECONDS = 604800
-// const EXPIRATION_SECONDS = 120
+const BASE_PATH = 'files/read/attachments'
+
+export interface ManifestEntry {
+  file_name: string | null
+  file_hash: string | null
+  download_url: string | null
+}
+
+export function getPathFromVersion(ownerOrg: string, appId: string, bucketId: string | null, storageProvider: string, r2Path: string | null) {
+  if (storageProvider === 'r2' && r2Path)
+    return r2Path
+  else if (storageProvider === 'r2' && bucketId && bucketId?.endsWith('.zip'))
+    return `apps/${ownerOrg}/${appId}/versions/${bucketId}`
+}
 
 export async function getBundleUrl(
   c: Context,
@@ -17,39 +31,68 @@ export async function getBundleUrl(
     app_id: Database['public']['Tables']['app_versions']['Row']['app_id']
   },
 ) {
-  console.log(version)
+  console.log({ requestId: c.get('requestId'), context: 'getBundleUrlV2 version', version })
 
-  let path: string | null = null
-  let size: number | null = null
-  let url: string | null = null
+  const path = getPathFromVersion(ownerOrg, version.app_id, version.bucket_id, version.storage_provider, version.r2_path)
 
-  // get app_versions_meta to get the size
   const { data: bundleMeta } = await supabaseAdmin(c)
     .from('app_versions_meta')
-    .select('size')
+    .select('size, checksum')
     .eq('id', version.id)
     .single()
 
-  if (version.storage_provider === 'r2' && version.r2_path)
-    path = version.r2_path
-  else if (version.storage_provider === 'r2' && version.bucket_id && version.bucket_id?.endsWith('.zip'))
-    path = `apps/${ownerOrg}/${version.app_id}/versions/${version.bucket_id}`
-
-  console.log(path)
+  console.log({ requestId: c.get('requestId'), context: 'path', path })
   if (!path)
     return null
 
+  if (getRuntimeKey() !== 'workerd') {
+    try {
+      const signedUrl = await s3.getSignedUrl(c, path, EXPIRATION_SECONDS)
+      console.log({ requestId: c.get('requestId'), context: 'getBundleUrl', signedUrl, size: bundleMeta?.size })
+
+      const url = signedUrl
+
+      return { url, size: bundleMeta?.size }
+    }
+    catch (error) {
+      console.error({ requestId: c.get('requestId'), context: 'getBundleUrl', error })
+    }
+  }
+
+  const url = new URL(c.req.url)
+  const downloadUrl = `${url.protocol}//${url.host}/${BASE_PATH}/${path}?key=${bundleMeta?.checksum}`
+  return { url: downloadUrl, size: bundleMeta?.size }
+}
+
+export async function getManifestUrl(c: Context, version: {
+  id: Database['public']['Tables']['app_versions']['Row']['id']
+  storage_provider: Database['public']['Tables']['app_versions']['Row']['storage_provider']
+  r2_path: Database['public']['Tables']['app_versions']['Row']['r2_path']
+  bucket_id: Database['public']['Tables']['app_versions']['Row']['bucket_id']
+  app_id: Database['public']['Tables']['app_versions']['Row']['app_id']
+  manifest: Database['public']['CompositeTypes']['manifest_entry'][] | null
+}): Promise<ManifestEntry[]> {
+  if (!version.manifest) {
+    return []
+  }
+
   try {
-    const signedUrl = await s3.getSignedUrl(c, path, EXPIRATION_SECONDS)
-    console.log('getBundleUrl', signedUrl, bundleMeta?.size)
+    const url = new URL(c.req.url)
+    const signKey = version.id
 
-    url = signedUrl
-    size = bundleMeta?.size ?? 0
+    return version.manifest.map((entry) => {
+      if (!entry.s3_path)
+        return null
 
-    return { url, size }
+      return {
+        file_name: entry.file_name,
+        file_hash: entry.file_hash,
+        download_url: `${url.protocol}//${url.host}/${BASE_PATH}/${entry.s3_path}?key=${signKey}`,
+      }
+    }).filter(entry => entry !== null) as ManifestEntry[]
   }
   catch (error) {
-    console.error('getBundleUrl', error)
+    console.error({ requestId: c.get('requestId'), context: 'getManifestUrl', error })
+    return []
   }
-  return null
 }

@@ -1,7 +1,7 @@
-import { Hono } from 'hono/tiny'
 import type { Context } from '@hono/hono'
-import { getEnv } from '../utils/utils.ts'
+import { Hono } from 'hono/tiny'
 import { useCors } from '../utils/hono.ts'
+import { getEnv } from '../utils/utils.ts'
 
 export const app = new Hono()
 
@@ -13,7 +13,6 @@ app.get('/', (c: Context) => {
       supaHost: getEnv(c, 'SUPABASE_URL'),
       supbaseId: getEnv(c, 'SUPABASE_URL')?.split('//')[1].split('.')[0].split(':')[0],
       supaKey: getEnv(c, 'SUPABASE_ANON_KEY'),
-      signKey: getEnv(c, 'DEFAULT_SIGN_KEY'),
     })
   }
   catch (e) {

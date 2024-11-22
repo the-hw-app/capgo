@@ -1,10 +1,10 @@
-import { timingSafeEqual } from 'hono/utils/buffer'
 import type { Context, MiddlewareHandler, Next } from '@hono/hono'
-import { HTTPException } from 'hono/http-exception'
-import { cors } from 'hono/cors'
-import { checkKey, getEnv } from './utils.ts'
 import type { Database } from './supabase.types.ts'
+import { cors } from 'hono/cors'
+import { HTTPException } from 'hono/http-exception'
+import { timingSafeEqual } from 'hono/utils/buffer'
 import { supabaseAdmin } from './supabase.ts'
+import { checkKey, getEnv } from './utils.ts'
 
 export const useCors = cors({
   origin: '*',
@@ -21,7 +21,7 @@ export function middlewareKey(rights: Database['public']['Enums']['key_mode'][])
     const capgkey_string = c.req.header('capgkey')
     const apikey_string = c.req.header('authorization')
     const key = capgkey_string || apikey_string
-    const apikey: Database['public']['Tables']['apikeys']['Row'] | null = await checkKey(key, supabaseAdmin(c), rights)
+    const apikey: Database['public']['Tables']['apikeys']['Row'] | null = await checkKey(c, key, supabaseAdmin(c), rights)
     if (!apikey)
       throw new HTTPException(400, { message: 'Invalid apikey' })
     c.set('apikey', apikey)

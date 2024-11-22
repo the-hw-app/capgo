@@ -1,7 +1,7 @@
-import { env, getRuntimeKey } from 'hono/adapter'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Context } from '@hono/hono'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from './supabase.types.ts'
+import { env, getRuntimeKey } from 'hono/adapter'
 
 export const fetchLimit = 50
 
@@ -49,7 +49,17 @@ export function shallowCleanObject(obj: Record<string, unknown>) {
   }, {} as Record<string, unknown>)
 }
 
-export async function checkKey(authorization: string | undefined, supabase: SupabaseClient<Database>, allowed: Database['public']['Enums']['key_mode'][]): Promise<Database['public']['Tables']['apikeys']['Row'] | null> {
+// function to fix semver 1.0 to 1.0.0 any verssion missing . should add .0 also should work for 1
+export function fixSemver(version: string) {
+  const nbPoint = (version.match(/\./g) || []).length
+  if (nbPoint === 0)
+    return `${version}.0.0`
+  if (nbPoint === 1)
+    return `${version}.0`
+  return version
+}
+
+export async function checkKey(c: Context, authorization: string | undefined, supabase: SupabaseClient<Database>, allowed: Database['public']['Enums']['key_mode'][]): Promise<Database['public']['Tables']['apikeys']['Row'] | null> {
   if (!authorization)
     return null
   try {
@@ -64,7 +74,7 @@ export async function checkKey(authorization: string | undefined, supabase: Supa
     return data
   }
   catch (error) {
-    console.log(error)
+    console.log({ requestId: c.get('requestId'), context: 'checkKey error', error })
     return null
   }
 }
@@ -72,6 +82,21 @@ export async function checkKey(authorization: string | undefined, supabase: Supa
 interface LimitedApp {
   id: string
   ignore: number
+}
+
+export interface Segments {
+  capgo: boolean
+  onboarded: boolean
+  trial: boolean
+  trial7: boolean
+  trial1: boolean
+  trial0: boolean
+  paying: boolean
+  plan: string
+  payingMonthly: boolean
+  overuse: boolean
+  canceled: boolean
+  issueSegment: boolean
 }
 
 export function isLimited(c: Context, id: string) {

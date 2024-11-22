@@ -1,13 +1,13 @@
 <!-- eslint-disable unused-imports/no-unused-vars -->
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { setErrors } from '@formkit/core'
 import { FormKit, FormKitMessages } from '@formkit/vue'
-import { toast } from 'vue-sonner'
-import { useSupabase } from '~/services/supabase'
-import Spinner from '~/components/Spinner.vue'
 import iconEmail from '~icons/oui/email?raw'
+import { useI18n } from 'petite-vue-i18n'
+import { ref } from 'vue'
+import { toast } from 'vue-sonner'
+import Spinner from '~/components/Spinner.vue'
+import { useSupabase } from '~/services/supabase'
 
 const { t } = useI18n()
 const supabase = useSupabase()
@@ -42,7 +42,7 @@ async function submit(form: { email: string, password: string }) {
         </div>
 
         <div class="relative max-w-md mx-auto mt-8 md:mt-4">
-          <div class="overflow-hidden bg-white rounded-md shadow-md">
+          <div class="overflow-hidden bg-white rounded-md shadow-md dark:bg-slate-800">
             <div class="px-4 py-6 sm:px-8 sm:py-7">
               <FormKit id="resend-email" type="form" :actions="false" @submit="submit">
                 <div class="space-y-5 text-gray-500">
@@ -61,7 +61,7 @@ async function submit(form: { email: string, password: string }) {
 
                   <div>
                     <button type="submit" class="inline-flex items-center justify-center w-full">
-                      <svg v-if="isLoading" class="inline-block w-5 h-5 mr-3 -ml-1 text-gray-900 align-middle animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg v-if="isLoading" class="inline-block w-5 h-5 mr-3 -ml-1 text-gray-900 align-middle dark:text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle
                           class="opacity-25"
                           cx="12"
@@ -80,7 +80,7 @@ async function submit(form: { email: string, password: string }) {
                 </div>
               </FormKit>
               <div class="flex flex-row justify-center w-full mt-5">
-                <router-link to="/login" class="text-sm font-medium text-orange-400 transition-all duration-200 focus:text-orange-500 hover:text-orange-500 hover:underline">
+                <router-link to="/login" class="text-sm font-medium text-orange-500 transition-all duration-200 focus:text-orange-600 hover:text-orange-600 hover:underline">
                   {{ t('back-to-login-page') }}
                 </router-link>
               </div>

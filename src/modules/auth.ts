@@ -1,16 +1,14 @@
-import { getPlans, isAdmin } from './../services/supabase'
-import type { UserModule } from '~/types'
-import { useMainStore } from '~/stores/main'
-import { useSupabase } from '~/services/supabase'
-import { setUser } from '~/services/chatwoot'
-import { useLogSnag } from '~/services/logsnag'
+import { setUser } from '~/services/bento'
 import { hideLoader } from '~/services/loader'
+import { useSupabase } from '~/services/supabase'
+import { sendEvent } from '~/services/tracking'
+import { useMainStore } from '~/stores/main'
+import type { UserModule } from '~/types'
+import { getPlans, isAdmin } from './../services/supabase'
 
 async function guard(next: any, to: string, from: string) {
   const supabase = useSupabase()
   const { data: auth } = await supabase.auth.getUser()
-
-  const snag = useLogSnag()
 
   const main = useMainStore()
 
@@ -25,7 +23,7 @@ async function guard(next: any, to: string, from: string) {
   }
 
   if (mfaData.currentLevel === 'aal1' && mfaData.nextLevel === 'aal2' && !isAdminForced)
-    return next('/login')
+    return next(`/login?to=${to}`)
 
   if (auth.user && !main.auth) {
     main.auth = auth.user
@@ -58,7 +56,7 @@ async function guard(next: any, to: string, from: string) {
       main.isAdmin = res
     })
 
-    snag.track({
+    sendEvent({
       channel: 'user-login',
       event: 'User Login',
       icon: '✅',
@@ -79,7 +77,7 @@ async function guard(next: any, to: string, from: string) {
   }
   else if (from !== 'login' && !auth.user) {
     main.auth = undefined
-    next('/login')
+    next(`/login?to=${to}`)
   }
   else {
     hideLoader()

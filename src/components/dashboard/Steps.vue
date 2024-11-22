@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import { ref, watchEffect } from 'vue'
-import copy from 'copy-text-to-clipboard'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import { useSupabase } from '~/services/supabase'
-import { useMainStore } from '~/stores/main'
-import { useLogSnag } from '~/services/logsnag'
-import { pushEvent } from '~/services/chatwoot'
 import arrowBack from '~icons/ion/arrow-back?width=2em&height=2em'
+import { useI18n } from 'petite-vue-i18n'
+import { ref, watchEffect } from 'vue'
+import { toast } from 'vue-sonner'
+import { pushEvent } from '~/services/bento'
+import { getLocalConfig, useSupabase } from '~/services/supabase'
+import { sendEvent } from '~/services/tracking'
+import { useMainStore } from '~/stores/main'
 
 const props = defineProps<{
   onboarding: boolean
 }>()
 const emit = defineEmits(['done'])
-
+const displayStore = useDisplayStore()
 const isLoading = ref(false)
 const step = ref(0)
 const clicked = ref(0)
@@ -23,7 +22,6 @@ const mySubscription = ref()
 const supabase = useSupabase()
 const main = useMainStore()
 const { t } = useI18n()
-const snag = useLogSnag()
 const organizationStore = useOrganizationStore()
 
 interface Step {
@@ -33,10 +31,15 @@ interface Step {
   link?: string
 }
 
+const config = getLocalConfig()
+function isLocal() {
+  return config.supaHost !== 'https://xvwzpoazmxkqosrdewyv.supabase.co'
+}
+
 const simpleStep: Step[] = [
   {
     title: t('init-capgo-in-your-a'),
-    command: 'npx @capgo/cli@latest init [APIKEY]',
+    command: !isLocal() ? `npx @capgo/cli@latest init [APIKEY]` : `npx @capgo/cli@latest init [APIKEY] --supa-host ${config.supaHost} --supa-anon ${config.supaKey}`,
     subtitle: '',
     link: '',
   },
@@ -49,7 +52,7 @@ const simpleStep: Step[] = [
 const steps = ref(simpleStep)
 function setLog() {
   if (props.onboarding && main.user?.id) {
-    snag.track({
+    sendEvent({
       channel: 'onboarding-v2',
       event: `onboarding-step-${step.value}`,
       icon: '👶',
@@ -62,7 +65,6 @@ function setLog() {
 
     if (step.value === 4)
       pushEvent('user:onboarding-done')
-    // TODO add emailing on onboarding done to send blog article versioning
   }
 }
 function openExt(url?: string) {
@@ -82,8 +84,27 @@ function scrollToElement(id: string) {
 async function copyToast(allowed: boolean, id: string, text?: string) {
   if (!allowed || !text)
     return
-  copy(text)
-  toast.success(t('copied-to-clipboard'))
+  try {
+    await navigator.clipboard.writeText(text)
+    console.log('displayStore.messageToast', displayStore.messageToast)
+    toast.success(t('copied-to-clipboard'))
+  }
+  catch (err) {
+    console.error('Failed to copy: ', err)
+    // Display a modal with the copied key
+    displayStore.dialogOption = {
+      header: t('cannot-copy'),
+      message: text,
+      buttons: [
+        {
+          text: t('button-cancel'),
+          role: 'cancel',
+        },
+      ],
+    }
+    displayStore.showDialog = true
+    await displayStore.onDialogDismiss()
+  }
   clicked.value += 1
   if (!realtimeListener.value || clicked.value === 3) {
     setLog()

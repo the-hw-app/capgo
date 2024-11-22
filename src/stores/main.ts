@@ -1,16 +1,16 @@
 import type { User } from '@supabase/supabase-js'
+import type { appUsageByApp, appUsageGlobal } from './../services/supabase'
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { appUsageByApp, appUsageGlobal } from './../services/supabase'
+import { reset } from '~/services/bento'
+import { useSupabase } from '~/services/supabase'
+import type { Database } from '~/types/supabase.types'
 import {
   findBestPlan,
   getAllDashboard,
   getTotalStorage,
   unspoofUser,
 } from './../services/supabase'
-import { useSupabase } from '~/services/supabase'
-import type { Database } from '~/types/supabase.types'
-import { reset } from '~/services/chatwoot'
 
 export const useMainStore = defineStore('main', () => {
   const auth = ref<User | undefined>()
@@ -27,6 +27,11 @@ export const useMainStore = defineStore('main', () => {
     bandwidth: 0,
   })
   const bestPlan = ref<string>('')
+  // getProcessCronStatsJobInfo
+  const statsTime = ref<{ next_run: string, last_run: string }>({
+    next_run: '',
+    last_run: '',
+  })
   const isAdmin = ref<boolean>(false)
   const dashboard = ref<appUsageGlobal[]>([])
   const dashboardByapp = ref<appUsageByApp[]>([])
@@ -107,6 +112,7 @@ export const useMainStore = defineStore('main', () => {
 
   return {
     auth,
+    statsTime,
     plans,
     isAdmin,
     totalStorage,

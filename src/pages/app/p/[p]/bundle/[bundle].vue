@@ -1,26 +1,25 @@
 <script setup lang="ts">
-import { computed, ref, watch, watchEffect } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { valid } from 'semver'
-import { useRoute, useRouter } from 'vue-router'
-import copy from 'copy-text-to-clipboard'
 import { Capacitor } from '@capacitor/core'
-import { toast } from 'vue-sonner'
-import { useSupabase } from '~/services/supabase'
-import { formatDate } from '~/services/date'
-import { openVersion } from '~/services/versions'
-import { useMainStore } from '~/stores/main'
-import type { Database } from '~/types/supabase.types'
-import { appIdToUrl, bytesToMbText, urlToAppId } from '~/services/conversion'
-import { useDisplayStore } from '~/stores/display'
+import { parse } from '@std/semver'
 import IconDevice from '~icons/heroicons/device-phone-mobile'
 import IconInformations from '~icons/material-symbols/info-rounded'
+import { useI18n } from 'petite-vue-i18n'
+import { computed, ref, watch, watchEffect } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import type { Tab } from '~/components/comp_def'
+import { appIdToUrl, bytesToMbText, urlToAppId } from '~/services/conversion'
+import { formatDate } from '~/services/date'
+import { useSupabase } from '~/services/supabase'
+import { openVersion } from '~/services/versions'
+import { useDisplayStore } from '~/stores/display'
+import { useMainStore } from '~/stores/main'
 import type { OrganizationRole } from '~/stores/organization'
 import { useOrganizationStore } from '~/stores/organization'
+import type { Database } from '~/types/supabase.types'
 
 const { t } = useI18n()
-const route = useRoute()
+const route = useRoute('/app/p/[p]/bundle/[bundle]')
 const router = useRouter()
 const displayStore = useDisplayStore()
 const organizationStore = useOrganizationStore()
@@ -51,8 +50,27 @@ watch(version, async (version) => {
 })
 
 async function copyToast(text: string) {
-  copy(text)
-  toast.success(t('copied-to-clipboard'))
+  try {
+    await navigator.clipboard.writeText(text)
+    console.log('displayStore.messageToast', displayStore.messageToast)
+    toast.success(t('copied-to-clipboard'))
+  }
+  catch (err) {
+    console.error('Failed to copy: ', err)
+    // Display a modal with the copied key
+    displayStore.dialogOption = {
+      header: t('cannot-copy'),
+      message: text,
+      buttons: [
+        {
+          text: t('button-cancel'),
+          role: 'cancel',
+        },
+      ],
+    }
+    displayStore.showDialog = true
+    await displayStore.onDialogDismiss()
+  }
 }
 
 const tabs: Tab[] = [
@@ -82,13 +100,13 @@ async function getChannels() {
   // search if the bundle is used in a channel
   channels.value.forEach((chan) => {
     const v: number = chan.version as any
-    if (version.value && (v === version.value.id || version.value.id === chan.secondVersion)) {
+    if (version.value && (v === version.value.id || version.value.id === chan.second_version)) {
       bundleChannels.value.push(chan)
-      secondaryChannel.value = (version.value.id === chan.secondVersion)
+      secondaryChannel.value = (version.value.id === chan.second_version)
     }
   })
 
-  showBundleMetadataInput.value = !!bundleChannels.value.find(c => c.disableAutoUpdate === 'version_number')
+  showBundleMetadataInput.value = !!bundleChannels.value.find(c => c.disable_auto_update === 'version_number')
 }
 
 async function openChannelLink() {
@@ -131,7 +149,7 @@ async function setSecondChannel(channel: Database['public']['Tables']['channels'
   return supabase
     .from('channels')
     .update({
-      secondVersion: id,
+      second_version: id,
     })
     .eq('id', channel.id)
 }
@@ -140,9 +158,9 @@ async function setChannelProgressive(channel: Database['public']['Tables']['chan
   return supabase
     .from('channels')
     .update({
-      secondVersion: id,
-      version: channel.secondVersion ?? undefined,
-      secondaryVersionPercentage: 0.1,
+      second_version: id,
+      version: channel.second_version ?? undefined,
+      secondary_version_percentage: 0.1,
     })
     .eq('id', channel.id)
 }
@@ -151,9 +169,9 @@ async function setChannelSkipProgressive(channel: Database['public']['Tables']['
   return supabase
     .from('channels')
     .update({
-      secondVersion: id,
+      second_version: id,
       version: id,
-      secondaryVersionPercentage: 1,
+      secondary_version_percentage: 1,
     })
     .eq('id', channel.id)
 }
@@ -173,7 +191,7 @@ async function ASChannelChooser() {
       return
 
     const aSelected = version?.value?.id === (chan.version as any)
-    const bSelected = version?.value?.id === (chan.secondVersion as any)
+    const bSelected = version?.value?.id === (chan.second_version as any)
 
     if (aSelected && ab === 'b') {
       const id = await getUnknowBundleId()
@@ -219,14 +237,14 @@ async function ASChannelChooser() {
 
   for (const chan of channels.value) {
     const v: number = chan.version as any
-    if (!chan.enableAbTesting && !chan.enable_progressive_deploy) {
+    if (!chan.enable_ab_testing && !chan.enable_progressive_deploy) {
       buttons.push({
         text: chan.name,
         selected: version.value.id === v,
         handler: async () => { await normalHandler(chan) },
       })
     }
-    else if (chan.enableAbTesting && !chan.enable_progressive_deploy) {
+    else if (chan.enable_ab_testing && !chan.enable_progressive_deploy) {
       buttons.push({
         text: `${chan.name}-A`,
         selected: version.value.id === v,
@@ -237,7 +255,7 @@ async function ASChannelChooser() {
       })
       buttons.push({
         text: `${chan.name}-B`,
-        selected: version.value.id === chan.secondVersion,
+        selected: version.value.id === chan.second_version,
         handler: async () => {
           await commonAbHandler(channel.value, 'b')
           await secondHandler(chan)
@@ -247,7 +265,7 @@ async function ASChannelChooser() {
     else {
       buttons.push({
         text: `${chan.name}`,
-        selected: version.value.id === chan.secondVersion,
+        selected: version.value.id === chan.second_version,
         handler: async () => {
           const newButtons = []
           newButtons.push({
@@ -313,6 +331,9 @@ async function ASChannelChooser() {
   displayStore.dialogOption = {
     header: t('channel-linking'),
     buttons,
+    buttonVertical: true,
+    headerStyle: 'text-center',
+    size: 'max-w-fit px-12',
   }
   displayStore.showDialog = true
   return displayStore.onDialogDismiss()
@@ -327,6 +348,9 @@ async function openChannel(selChannel: Database['public']['Tables']['channels'][
 
   displayStore.dialogOption = {
     header: t('channel-linking'),
+    buttonVertical: true,
+    headerStyle: 'text-center',
+    size: 'max-w-fit px-12',
     buttons: [
       {
         text: t('button-cancel'),
@@ -361,6 +385,7 @@ async function openChannel(selChannel: Database['public']['Tables']['channels'][
     if (role.value && (role.value === 'admin' || role.value === 'super_admin' || role.value === 'write')) {
       displayStore.dialogOption.buttons.splice(baseIndex + 1, 0, {
         text: t('unlink-channel'),
+        role: 'danger',
         handler: async () => {
           try {
             if (!channel.value)
@@ -390,15 +415,30 @@ async function openDownload() {
   if (!version.value || !main.auth)
     return
   displayStore.dialogOption = {
-    header: t('download'),
+    header: t('are-you-sure-you-want-to-download'),
+    headerStyle: 'w-full text-center',
+    size: 'max-w-fit px-12',
+    buttonCenter: true,
     buttons: [
+      {
+        text: t('button-cancel'),
+        role: 'cancel',
+        handler: () => {
+          // console.log('Cancel clicked')
+        },
+      },
       {
         text: Capacitor.isNativePlatform() ? t('launch-bundle') : t('download'),
         handler: async () => {
           if (!version.value)
             return
           if (version.value.session_key) {
-            const command = `bunx @capgo/cli bundle decrypt ./${version.value.bucket_id}${version.value.storage_provider === 'r2' ? '' : '.zip'} ${version.value.session_key} --key ./.capgo_key`
+            let localPath = `./${version.value.bucket_id}${version.value.storage_provider === 'r2' ? '' : '.zip'}`
+            if (version.value.r2_path) {
+              const filename = version.value.r2_path.split('/').slice(-1)[0]
+              localPath = `./${filename}`
+            }
+            const command = `npx @capgo/cli@latest bundle decrypt ${localPath}  ${version.value.session_key} --key ./.capgo_key`
             displayStore.dialogOption = {
               header: '',
               message: `${t('to-open-encrypted-bu')}<br/><code>${command}</code>`,
@@ -414,12 +454,6 @@ async function openDownload() {
             copyToast(command)
           }
           openVersion(version.value)
-        },
-      },
-      {
-        text: t('set-bundle'),
-        handler: () => {
-          ASChannelChooser()
         },
       },
       {
@@ -493,7 +527,7 @@ async function saveCustomId(input: string) {
     const { error: errorNull } = await supabase
       .from('app_versions')
       .update({
-        minUpdateVersion: null,
+        min_update_version: null,
       })
       .eq('id', id.value)
 
@@ -506,7 +540,7 @@ async function saveCustomId(input: string) {
     return
   }
 
-  if (!valid(input)) {
+  if (!parse(input)) {
     toast.error(t('invalid-version'))
     return
   }
@@ -514,7 +548,7 @@ async function saveCustomId(input: string) {
   const { error } = await supabase
     .from('app_versions')
     .update({
-      minUpdateVersion: input,
+      min_update_version: input,
     })
     .eq('id', id.value)
 
@@ -555,85 +589,112 @@ function preventInputChangePerm(event: Event) {
       <Tabs v-model:active-tab="ActiveTab" :tabs="tabs" />
       <div v-if="ActiveTab === 'info'" id="devices" class="flex flex-col">
         <div
-          class="flex flex-col overflow-y-auto bg-white shadow-lg border-slate-200 md:mx-auto md:mt-5 md:w-2/3 md:border dark:border-slate-900 md:rounded-lg dark:bg-slate-800"
+          class="flex flex-col overflow-y-auto bg-white shadow-lg border-slate-300 md:mx-auto md:mt-5 md:w-2/3 md:border dark:border-slate-900 md:rounded-lg dark:bg-slate-800"
         >
-          <dl class="divide-y divide-gray-500">
-            <InfoRow :label="t('bundle-number')" :value="version.name" />
-            <InfoRow :label="t('id')" :value="version.id.toString()" />
-            <InfoRow v-if="version.created_at" :label="t('created-at')" :value="formatDate(version.created_at)" />
-            <InfoRow v-if="version.updated_at" :label="t('updated-at')" :value="formatDate(version.updated_at)" />
+          <dl class="divide-y dark:divide-slate-500 divide-slate-200">
+            <InfoRow :label="t('bundle-number')">
+              {{ version.name }}
+            </InfoRow>
+            <InfoRow :label="t('id')">
+              {{ version.id.toString() }}
+            </InfoRow>
+            <InfoRow v-if="version.created_at" :label="t('created-at')">
+              {{ formatDate(version.created_at) }}
+            </InfoRow>
+            <InfoRow v-if="version.updated_at" :label="t('updated-at')">
+              {{ formatDate(version.updated_at) }}
+            </InfoRow>
             <!-- Checksum -->
-            <InfoRow v-if="version.checksum" :label="t('checksum')" :value="version.checksum" />
+            <InfoRow v-if="version.checksum" :label="t('checksum')">
+              {{ version.checksum }}
+            </InfoRow>
             <!-- Min update version -->
             <InfoRow
               v-if="showBundleMetadataInput" id="metadata-bundle"
-              :label="t('min-update-version')" editable :value="version.minUpdateVersion ?? ''"
-              :readonly="!organizationStore.hasPermisisonsInRole(role, ['admin', 'super_admin', 'write'])"
+              :label="t('min-update-version')" editable
+              :readonly="organizationStore.hasPermisisonsInRole(role, ['admin', 'super_admin', 'write']) === false"
               @click="guardMinAutoUpdate" @update:value="saveCustomId" @keydown="preventInputChangePerm"
-            />
+            >
+              {{ version.min_update_version }}
+            </InfoRow>
+
             <!-- meta devices -->
-            <InfoRow v-if="version_meta?.devices" :label="t('devices')" :value="version_meta.devices.toLocaleString()" />
+            <InfoRow v-if="version_meta?.devices" :label="t('devices')">
+              {{ version_meta.devices.toLocaleString() }}
+            </InfoRow>
             <InfoRow
               v-if="version_meta?.installs" :label="t('install')"
-              :value="version_meta.installs.toLocaleString()"
-            />
+            >
+              {{ version_meta.installs.toLocaleString() }}
+            </InfoRow>
             <InfoRow
               v-if="version_meta?.uninstalls" :label="t('uninstall')"
-              :value="version_meta.uninstalls.toLocaleString()"
-            />
-            <InfoRow v-if="version_meta?.fails" :label="t('fail')" :value="version_meta.fails.toLocaleString()" />
+            >
+              {{ version_meta.uninstalls.toLocaleString() }}
+            </InfoRow>
+            <InfoRow v-if="version_meta?.fails" :label="t('fail')">
+              {{ version_meta.fails.toLocaleString() }}
+            </InfoRow>
             <!-- <InfoRow v-if="version_meta?.installs && version_meta?.fails" :label="t('percent-fail')" :value="failPercent" /> -->
-            <InfoRow v-if="bundleChannels && bundleChannels.length > 0" :label="t('channel')" value="">
+            <InfoRow v-if="bundleChannels && bundleChannels.length > 0" :label="t('channel')">
               <template #start>
                 <span v-for="chn in bundleChannels" id="open-channel" :key="chn.id">
                   <span
-                    v-if="(chn!.enableAbTesting || chn!.enable_progressive_deploy) ? (chn!.secondVersion === version.id) : false"
+                    v-if="(chn!.enable_ab_testing || chn!.enable_progressive_deploy) ? (chn!.second_version === version.id) : false"
                     class="pr-3 font-bold text-blue-600 underline cursor-pointer underline-offset-4 active dark:text-blue-500 text-dust"
                     @click="openChannel(chn, true)"
                   >
-                    {{ (chn!.enableAbTesting || chn!.enable_progressive_deploy) ? ((chn!.secondVersion
+                    {{ (chn!.enable_ab_testing || chn!.enable_progressive_deploy) ? ((chn!.second_version
                       === version.id) ? `${chn!.name}-B` : ``) : chn!.name }}
                   </span>
                   <span
-                    v-if="(chn!.enableAbTesting || chn!.enable_progressive_deploy) ? (chn!.version === version.id) : false"
+                    v-if="(chn!.enable_ab_testing || chn!.enable_progressive_deploy) ? (chn!.version === version.id) : false"
                     class="pr-3 font-bold text-blue-600 underline cursor-pointer underline-offset-4 active dark:text-blue-500 text-dust"
                     @click="openChannel(chn, false)"
                   >
                     {{ `${chn!.name}-A` }}
                   </span>
                   <span
-                    v-if="(chn!.enableAbTesting || chn!.enable_progressive_deploy) ? false : true"
+                    v-if="(chn!.enable_ab_testing || chn!.enable_progressive_deploy) ? false : true"
                     class="pr-3 font-bold text-blue-600 underline cursor-pointer underline-offset-4 active dark:text-blue-500 text-dust"
                     @click="openChannel(chn, false)"
                   >
-                    {{ (chn!.enableAbTesting || chn!.enable_progressive_deploy) ? ((chn!.secondVersion === version.id) ? `${chn!.name}-B` : ``) : chn!.name }}
+                    {{ (chn!.enable_ab_testing || chn!.enable_progressive_deploy) ? ((chn!.second_version === version.id) ? `${chn!.name}-B` : ``) : chn!.name }}
                   </span>
                 </span>
               </template>
             </InfoRow>
             <InfoRow
-              v-else id="open-channel" :label="t('channel')" :value="t('set-bundle')" :is-link="true"
+              v-else id="open-channel" :label="t('channel')" :is-link="true"
               @click="openChannel(channel!, false)"
-            />
+            >
+              {{ t('set-bundle') }}
+            </InfoRow>
             <!-- session_key -->
             <InfoRow
-              v-if="version.session_key" :label="t('session_key')" :value="hideString(version.session_key)"
-              :is-link="true" @click="copyToast(version?.session_key || '')"
-            />
+              v-if="version.session_key" :label="t('session_key')" :is-link="true"
+              @click="copyToast(version?.session_key || '')"
+            >
+              {{ hideString(version.session_key) }}
+            </InfoRow>
             <!-- version.external_url -->
             <InfoRow
-              v-if="version.external_url" :label="t('url')" :value="version.external_url" :is-link="true"
+              v-if="version.external_url" :label="t('url')" :is-link="true"
               @click="copyToast(version?.external_url || '')"
-            />
+            >
+              {{ version.external_url }}
+            </InfoRow>
             <!-- size -->
-            <InfoRow :label="t('size')" :value="showSize" :is-link="true" @click="openDownload()" />
+            <InfoRow :label="t('size')" :is-link="true" @click="openDownload()">
+              {{ showSize }}
+            </InfoRow>
             <!-- <InfoRow :label="t('preview')" :value="t('preview-short')" :is-link="true" @click="previewBundle()" /> -->
           </dl>
         </div>
       </div>
       <div v-else-if="ActiveTab === 'devices'" id="devices" class="flex flex-col">
         <div
-          class="flex flex-col mx-auto overflow-y-auto bg-white shadow-lg border-slate-200 md:mt-5 md:w-2/3 md:border dark:border-slate-900 md:rounded-lg dark:bg-gray-800"
+          class="flex flex-col mx-auto overflow-y-auto bg-white shadow-lg border-slate-300 md:mt-5 md:w-2/3 md:border dark:border-slate-900 md:rounded-lg dark:bg-gray-800"
         >
           <DeviceTable class="p-3" :app-id="packageId" :version-id="version.id" />
         </div>

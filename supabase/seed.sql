@@ -6,7 +6,7 @@ select
     vault.create_secret('http://localhost:8881/.netlify/functions', 'netlify_function_url', 'Netlify function url');
 -- Cloudflare backend for specific functions using CF features
 select
-    vault.create_secret('http://host.docker.internal:7777', 'cloudflare_function_url', 'Cloudflare function url');
+    vault.create_secret('http://host.docker.internal:54321/functions/v1', 'cloudflare_function_url', 'Cloudflare function url');
 select vault.create_secret('testsecret', 'apikey', 'admin user id');
 
 -- Create cron jobs
@@ -20,7 +20,7 @@ select
     cron.schedule('Update insights', '22 1 * * *', $$SELECT http_post_helper('logsnag_insights', 'cloudflare', '{}'::jsonb)$$);
 -- SELECT cron.schedule('Update plan', '0 1 * * *', $$SELECT http_post_helper('cron_good_plan', '', '{}'::jsonb)$$);
 select
-    cron.schedule('Send stats email every week', '0 12 * * 6', $$SELECT http_post_helper('cron_email', 'cloudflare', '{}'::jsonb)$$);
+    cron.schedule('Send stats email every week', '0 12 * * 6', $$SELECT process_stats_email();$$);
 
 select reset_and_seed_data();
 select reset_and_seed_stats_data();

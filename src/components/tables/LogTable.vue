@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import ky from 'ky'
-import dayjs from 'dayjs'
-import { onMounted, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import type { TableColumn } from '../comp_def'
+import dayjs from 'dayjs'
+import ky from 'ky'
+import { useI18n } from 'petite-vue-i18n'
+import { onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { appIdToUrl } from '~/services/conversion'
 import { formatDate } from '~/services/date'
 import { defaultApiHost, useSupabase } from '~/services/supabase'
-import { appIdToUrl } from '~/services/conversion'
 
 const props = defineProps<{
   deviceId?: string
@@ -39,7 +39,7 @@ const elements = ref<Element[]>([])
 const versions = ref<Channel['version'][]>([])
 const isLoading = ref(false)
 const currentPage = ref(1)
-const range = ref<[Date, Date]>([dayjs().subtract(1, 'hour').toDate(), new Date()])
+const range = ref<[Date, Date]>([dayjs().subtract(3, 'minute').toDate(), new Date()])
 const filters = ref()
 
 function findVersion(id: number, versions: { name: string, id: number }[]) {
@@ -106,7 +106,7 @@ async function getData() {
       .post(`${defaultApiHost}/private/stats`, {
         headers: {
           'Content-Type': 'application/json',
-          'authorization': `Bearer ${currentJwt}` || '',
+          'authorization': `Bearer ${currentJwt || ''}`,
         },
         body: JSON.stringify({
           appId: props.appId,
@@ -202,14 +202,20 @@ watch(props, async () => {
 </script>
 
 <template>
-  <TableLog
-    v-model:filters="filters" v-model:columns="columns" v-model:current-page="currentPage" v-model:search="search"
-    :element-list="elements"
-    filter-text="Filters"
-    :is-loading="isLoading"
-    :app-id="props.appId ?? ''"
-    :search-placeholder="deviceId ? t('search-by-device-id-0') : t('search-by-device-id-')"
-    @reload="reload()" @reset="refreshData()"
-    @row-click="openOne"
-  />
+  <div>
+    <TableLog
+      v-model:filters="filters"
+      v-model:columns="columns"
+      v-model:current-page="currentPage"
+      v-model:search="search"
+      v-model:range="range"
+      :element-list="elements"
+      filter-text="Filters"
+      :is-loading="isLoading"
+      :app-id="props.appId ?? ''"
+      :search-placeholder="deviceId ? t('search-by-device-id-0') : t('search-by-device-id-')"
+      @reload="reload()" @reset="refreshData()"
+      @row-click="openOne"
+    />
+  </div>
 </template>

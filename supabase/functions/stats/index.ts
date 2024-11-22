@@ -1,5 +1,7 @@
-import { Hono } from 'hono/tiny'
 import { sentry } from '@hono/sentry'
+import { logger } from 'hono/logger'
+import { requestId } from 'hono/request-id'
+import { Hono } from 'hono/tiny'
 import { app } from '../_backend/plugins/stats.ts'
 
 const functionName = 'stats'
@@ -12,6 +14,8 @@ if (sentryDsn) {
   }))
 }
 
+appGlobal.use('*', logger())
+appGlobal.use('*', requestId())
 appGlobal.route('/', app)
 
 Deno.serve(appGlobal.fetch)

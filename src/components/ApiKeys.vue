@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
-import copy from 'copy-text-to-clipboard'
-import { useSupabase } from '~/services/supabase'
-import type { Database } from '~/types/supabase.types'
-import { useMainStore } from '~/stores/main'
-import { useDisplayStore } from '~/stores/display'
-import Trash from '~icons/heroicons/trash'
-import Pencil from '~icons/heroicons/pencil'
 import ArrowPath from '~icons/heroicons/arrow-path'
 import Clipboard from '~icons/heroicons/clipboard-document'
+import Pencil from '~icons/heroicons/pencil'
+import Trash from '~icons/heroicons/trash'
 import plusOutline from '~icons/ion/add-outline?width=2em&height=2em'
+import { useI18n } from 'petite-vue-i18n'
+import { ref } from 'vue'
+import { toast } from 'vue-sonner'
+import { useSupabase } from '~/services/supabase'
+import { useDisplayStore } from '~/stores/display'
+import { useMainStore } from '~/stores/main'
+import type { Database } from '~/types/supabase.types'
 
 const { t } = useI18n()
 const displayStore = useDisplayStore()
@@ -263,49 +262,69 @@ async function showAddNewKeyModal() {
 }
 
 async function copyKey(app: Database['public']['Tables']['apikeys']['Row']) {
-  copy(app.key)
-  console.log('displayStore.messageToast', displayStore.messageToast)
-  toast.success(t('key-copied'))
+  try {
+    await navigator.clipboard.writeText(app.key)
+    console.log('displayStore.messageToast', displayStore.messageToast)
+    toast.success(t('key-copied'))
+  }
+  catch (err) {
+    console.error('Failed to copy: ', err)
+    // Display a modal with the copied key
+    displayStore.dialogOption = {
+      header: t('cannot-copy-key'),
+      message: app.key,
+      buttons: [
+        {
+          text: t('button-cancel'),
+          role: 'cancel',
+        },
+      ],
+    }
+    displayStore.showDialog = true
+    await displayStore.onDialogDismiss()
+  }
 }
 displayStore.NavTitle = t('api-keys')
 displayStore.defaultBack = '/app/home'
 </script>
 
 <template>
-  <div class="w-full h-full px-4 py-8 mx-auto max-w-9xl lg:px-8 sm:px-6">
-    <div class="flex flex-col">
-      <div class="flex flex-col overflow-hidden overflow-y-auto bg-white rounded-lg shadow-lg border-slate-200 md:mx-auto md:mt-5 md:w-2/3 md:border dark:border-slate-900 dark:bg-slate-800">
-        <dl :key="magicVal" class="divide-y divide-gray-500">
-          <InfoRow v-for="key in keys" :key="key.id" :label="key.mode.toUpperCase()" :value="key.name" :is-link="true">
-            <button class="ml-auto bg-transparent w-7 h-7" @click="regenrateKey(key)">
-              <ArrowPath class="mr-4 text-lg" />
-            </button>
-            <button class="ml-auto bg-transparent w-7 h-7" @click="changeName(key)">
-              <Pencil class="mr-4 text-lg" />
-            </button>
-            <button class="ml-auto bg-transparent w-7 h-7" @click="copyKey(key)">
-              <Clipboard class="mr-4 text-lg" />
-            </button>
-            <button class="ml-4 bg-transparent w-7 h-7" @click="deleteKey(key)">
-              <Trash class="mr-4 text-lg text-red-600" />
-            </button>
-          </InfoRow>
-        </dl>
+  <div>
+    <div class="w-full h-full px-4 py-8 mx-auto max-w-9xl lg:px-8 sm:px-6">
+      <div class="flex flex-col">
+        <div class="flex flex-col overflow-hidden overflow-y-auto bg-white rounded-lg shadow-lg border-slate-300 md:mx-auto md:mt-5 md:w-2/3 md:border dark:border-slate-900 dark:bg-slate-800">
+          <dl :key="magicVal" class="divide-y dark:divide-slate-500 divide-slate-200">
+            <InfoRow v-for="key in keys" :key="key.id" :label="key.name" :value="key.mode.toUpperCase()" :is-link="false">
+              <button class="mx-1 text-center bg-transparent rounded w-7 h-7 hover:bg-slate-100 dark:hover:bg-slate-600" @click="regenrateKey(key)">
+                <ArrowPath class="mx-auto text-lg" />
+              </button>
+              <button class="mx-1 bg-transparent rounded w-7 h-7 hover:bg-slate-100 dark:hover:bg-slate-600" @click="changeName(key)">
+                <Pencil class="mx-auto text-lg" />
+              </button>
+              <button class="mx-1 bg-transparent rounded w-7 h-7 hover:bg-slate-100 dark:hover:bg-slate-600" @click="copyKey(key)">
+                <Clipboard class="mx-auto text-lg" />
+              </button>
+              <button class="mx-1 bg-transparent rounded w-7 h-7 hover:bg-slate-100 dark:hover:bg-slate-600" @click="deleteKey(key)">
+                <Trash class="mx-auto text-lg text-red-600" />
+              </button>
+            </InfoRow>
+          </dl>
+        </div>
+        <p class="mx-3 mt-6 md:mx-auto">
+          {{ t('api-keys-are-used-for-cli-and-public-api') }}
+        </p>
+        <div class="mx-3 mb-2 md:mx-auto">
+          <a class="text-blue-500 underline" href="https://capgo.app/docs/tooling/cli/" target="_blank">
+            {{ t('cli-doc') }}
+          </a>
+          <a class="ml-1 text-blue-500 underline" href="https://capgo.app/docs/tooling/api/" target="_blank">
+            {{ t('api-doc') }}
+          </a>
+        </div>
       </div>
-      <p class="mx-3 mt-6 md:mx-auto">
-        {{ t('api-keys-are-used-for-cli-and-public-api') }}
-      </p>
-      <div class="mx-3 mb-2 md:mx-auto">
-        <a class="text-blue-500 underline" href="https://capgo.app/docs/tooling/cli/" target="_blank">
-          {{ t('cli-doc') }}
-        </a>
-        <a class="ml-1 text-blue-500 underline" href="https://capgo.app/docs/tooling/api/" target="_blank">
-          {{ t('api-doc') }}
-        </a>
-      </div>
+      <button class="fixed z-20 bg-gray-800 btn btn-circle btn-lg btn-outline right-4-safe bottom-4-safe secondary" @click="addNewApiKey">
+        <plusOutline />
+      </button>
     </div>
-    <button class="fixed z-20 bg-gray-800 btn btn-circle btn-lg btn-outline right-4-safe bottom-4-safe secondary" @click="addNewApiKey">
-      <plusOutline />
-    </button>
   </div>
 </template>

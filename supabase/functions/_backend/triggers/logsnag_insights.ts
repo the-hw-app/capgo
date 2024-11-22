@@ -1,12 +1,12 @@
-import { Hono } from 'hono/tiny'
 import type { Context } from '@hono/hono'
-import ky from 'ky'
-import { BRES, middlewareAPISecret } from '../utils/hono.ts'
-import { supabaseAdmin } from '../utils/supabase.ts'
 import type { Database } from '../utils/supabase.types.ts'
-import { logsnagInsights } from '../utils/logsnag.ts'
+import { Hono } from 'hono/tiny'
+import ky from 'ky'
+import { readActiveAppsCF, readLastMonthUpdatesCF } from '../utils/cloudflare.ts'
+import { BRES, middlewareAPISecret } from '../utils/hono.ts'
+import { logsnag, logsnagInsights } from '../utils/logsnag.ts'
 import { countAllApps, countAllUpdates } from '../utils/stats.ts'
-import { readActiveAppsCF } from '../utils/cloudflare.ts'
+import { supabaseAdmin } from '../utils/supabase.ts'
 
 interface PlanTotal { [key: string]: number }
 interface Actives { users: number, apps: number }
@@ -14,6 +14,7 @@ interface CustomerCount { total: number, yearly: number, monthly: number }
 interface GlobalStats {
   apps: PromiseLike<number>
   updates: PromiseLike<number>
+  updates_last_month: PromiseLike<number>
   users: PromiseLike<number>
   stars: Promise<number>
   onboarded: PromiseLike<number>
@@ -44,22 +45,22 @@ function getStats(c: Context): GlobalStats {
     stars: getGithubStars(),
     customers: supabase.rpc('get_customer_counts', {}).single().then((res) => {
       if (res.error || !res.data)
-        console.log('get_customer_counts', res.error)
+        console.log({ requestId: c.get('requestId'), context: 'get_customer_counts', error: res.error })
       return res.data || { total: 0, yearly: 0, monthly: 0 }
     }),
     onboarded: supabase.rpc('count_all_onboarded', {}).single().then((res) => {
       if (res.error || !res.data)
-        console.log('count_all_onboarded', res.error)
+        console.log({ requestId: c.get('requestId'), context: 'count_all_onboarded', error: res.error })
       return res.data || 0
     }),
     need_upgrade: supabase.rpc('count_all_need_upgrade', {}).single().then((res) => {
       if (res.error || !res.data)
-        console.log('count_all_need_upgrade', res.error)
+        console.log({ requestId: c.get('requestId'), context: 'count_all_need_upgrade', error: res.error })
       return res.data || 0
     }),
     plans: supabase.rpc('count_all_plans_v2').then((res) => {
       if (res.error || !res.data)
-        console.log('count_all_plans_v2', res.error)
+        console.log({ requestId: c.get('requestId'), context: 'count_all_plans_v2', error: res.error })
       return res.data || {}
     }).then((data: any) => {
       const total: PlanTotal = {}
@@ -74,10 +75,11 @@ function getStats(c: Context): GlobalStats {
         return { apps: app_ids.length, users: res2.data || 0 }
       }
       catch (e) {
-        console.error('count_active_users error', e)
+        console.error({ requestId: c.get('requestId'), context: 'count_active_users error', error: e })
       }
       return { apps: app_ids.length, users: 0 }
     }),
+    updates_last_month: readLastMonthUpdatesCF(c),
   }
 }
 
@@ -96,6 +98,7 @@ app.post('/', middlewareAPISecret, async (c: Context) => {
       need_upgrade,
       plans,
       actives,
+      updates_last_month,
     ] = await Promise.all([
       res.apps,
       res.updates,
@@ -106,10 +109,11 @@ app.post('/', middlewareAPISecret, async (c: Context) => {
       res.need_upgrade,
       res.plans,
       res.actives,
+      res.updates_last_month,
     ])
     const not_paying = users - customers.total
-    console.log('All Promises', apps, updates, users, stars, customers, onboarded, need_upgrade, plans)
-    // console.log('app', app.app_id, downloads, versions, shared, channels)
+    console.log({ requestId: c.get('requestId'), context: 'All Promises', apps, updates, users, stars, customers, onboarded, need_upgrade, plans })
+    // console.log(c.get('requestId'), 'app', app.app_id, downloads, versions, shared, channels)
     // create var date_id with yearn-month-day
     const date_id = new Date().toISOString().slice(0, 10)
     const newData: Database['public']['Tables']['global_stats']['Insert'] = {
@@ -127,13 +131,25 @@ app.post('/', middlewareAPISecret, async (c: Context) => {
       onboarded,
       need_upgrade,
       not_paying,
+      updates_last_month,
     }
-    console.log('newData', newData)
+    console.log({ requestId: c.get('requestId'), context: 'newData', newData })
     const { error } = await supabaseAdmin(c)
       .from('global_stats')
       .upsert(newData)
     if (error)
-      console.error('insert global_stats error', error)
+      console.error({ requestId: c.get('requestId'), context: 'insert global_stats error', error })
+    await logsnag(c).track({
+      channel: 'updates-stats',
+      event: 'Updates last month',
+      user_id: 'admin',
+      tags: {
+        updates_last_month,
+      },
+      icon: '📲',
+    }).catch((e) => {
+      console.error({ requestId: c.get('requestId'), context: 'insights error', e })
+    })
     await logsnagInsights(c, [
       {
         title: 'Apps',
@@ -148,6 +164,11 @@ app.post('/', middlewareAPISecret, async (c: Context) => {
       {
         title: 'Updates',
         value: updates,
+        icon: '📲',
+      },
+      {
+        title: 'Updates last month',
+        value: updates_last_month,
         icon: '📲',
       },
       {
@@ -216,13 +237,13 @@ app.post('/', middlewareAPISecret, async (c: Context) => {
         icon: '📈',
       },
     ]).catch((e) => {
-      console.error('insights error', e)
+      console.error({ requestId: c.get('requestId'), context: 'insights error', e })
     })
-    console.log('Sent to logsnag done')
+    console.log({ requestId: c.get('requestId'), context: 'Sent to logsnag done' })
     return c.json(BRES)
   }
   catch (e) {
-    console.error('general insights error', e)
+    console.error({ requestId: c.get('requestId'), context: 'general insights error', e })
     return c.json({ status: 'Cannot process insights', error: JSON.stringify(e) }, 500)
   }
 })

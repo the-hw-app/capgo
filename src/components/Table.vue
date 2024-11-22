@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import debounce from 'lodash.debounce'
-import { computed, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { FormKit } from '@formkit/vue'
 import type { TableColumn } from './comp_def'
-import IconNext from '~icons/ic/round-keyboard-arrow-right'
-import IconSort from '~icons/lucide/chevrons-up-down'
-import IconSortUp from '~icons/lucide/chevron-up'
-import IconSortDown from '~icons/lucide/chevron-down'
-import IconSearch from '~icons/ic/round-search?raw'
-import IconReload from '~icons/tabler/reload'
+import { FormKit } from '@formkit/vue'
+import { useDebounceFn } from '@vueuse/core'
 import IconDown from '~icons/ic/round-keyboard-arrow-down'
-import IconFilter from '~icons/system-uicons/filtering'
-import IconFastForward from '~icons/ic/round-keyboard-double-arrow-right'
 import IconPrev from '~icons/ic/round-keyboard-arrow-left'
+import IconNext from '~icons/ic/round-keyboard-arrow-right'
 import IconFastBackward from '~icons/ic/round-keyboard-double-arrow-left'
+import IconFastForward from '~icons/ic/round-keyboard-double-arrow-right'
+import IconSearch from '~icons/ic/round-search?raw'
+import IconSortDown from '~icons/lucide/chevron-down'
+import IconSortUp from '~icons/lucide/chevron-up'
+import IconSort from '~icons/lucide/chevrons-up-down'
+import IconFilter from '~icons/system-uicons/filtering'
+import IconReload from '~icons/tabler/reload'
+import { useI18n } from 'petite-vue-i18n'
+import { computed, ref, watch } from 'vue'
 
 interface Props {
   rowClick?: boolean
@@ -42,6 +42,7 @@ const emit = defineEmits([
   'update:columns',
   'update:currentPage',
   'filterClick',
+  'plusClick',
   'rowClick',
   'sortClick',
 ])
@@ -95,7 +96,7 @@ if (props.filters) {
   })
 }
 
-watch(searchVal, debounce(() => {
+watch(searchVal, useDebounceFn(() => {
   emit('update:search', searchVal.value)
   emit('reload')
 }, 500))
@@ -154,7 +155,7 @@ async function fastBackward() {
 
 <template>
   <div class="pb-4 overflow-x-auto md:pb-0 min-h-[300px]">
-    <div class="flex items-start justify-between pb-4 md:items-center">
+    <div class="flex items-start justify-between p-3 pb-4 md:items-center">
       <div class="flex">
         <button class="mr-2 inline-flex items-center border border-gray-300 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-500 dark:border-gray-600 dark:bg-gray-800 hover:bg-gray-100 dark:text-white focus:outline-none focus:ring-4 focus:ring-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700" type="button" @click="emit('reset')">
           <IconReload v-if="!isLoading" class="m-1 mr-2" />
@@ -162,7 +163,7 @@ async function fastBackward() {
           <span class="hidden text-sm md:block">{{ t('reload') }}</span>
         </button>
         <div v-if="filterText && filterList.length" class="dropdown">
-          <div tabindex="0" role="button" class="mr-2 inline-flex items-center border border-gray-300 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-500 dark:border-gray-600 dark:bg-gray-800 hover:bg-gray-100 dark:text-white focus:outline-none focus:ring-4 focus:ring-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+          <button tabindex="0" class="mr-2 inline-flex items-center border border-gray-300 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-500 dark:border-gray-600 dark:bg-gray-800 hover:bg-gray-100 dark:text-white focus:outline-none focus:ring-4 focus:ring-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700">
             <div v-if="filterActivated" class="absolute inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-red-500 border-2 border-white rounded-full -right-2 -top-2 dark:border-gray-900">
               <!-- uppercase first letter in tailwind -->
               {{ filterActivated }}
@@ -170,7 +171,7 @@ async function fastBackward() {
             <IconFilter class="m-1 mr-2" />
             <span class="hidden md:block">{{ t(filterText) }}</span>
             <IconDown class="hidden m-1 ml-2 md:block" />
-          </div>
+          </button>
           <ul tabindex="0" class="dropdown-content menu dark:bg-base-100 bg-white rounded-box z-[1] w-52 p-2 shadow">
             <li v-for="(f, i) in filterList" :key="i">
               <div class="flex items-center p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -200,7 +201,7 @@ async function fastBackward() {
         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
           <tr>
             <th v-for="(col, i) in columns" :key="i" scope="col" class="px-6 py-3" :class="{ 'cursor-pointer': col.sortable, 'hidden md:table-cell': !col.mobile }" @click="sortClick(i)">
-              <div class="flex items-center">
+              <div class="flex items-center first-letter:uppercase">
                 {{ col.label }}
                 <div v-if="col.sortable">
                   <IconSortUp v-if="col.sortable === 'asc'" />

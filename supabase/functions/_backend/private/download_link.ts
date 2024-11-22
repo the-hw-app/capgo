@@ -1,14 +1,15 @@
-import { Hono } from 'hono/tiny'
 import type { Context } from '@hono/hono'
+import { Hono } from 'hono/tiny'
+import { getBundleUrl, getManifestUrl } from '../utils/downloadUrl.ts'
 import { middlewareAuth, useCors } from '../utils/hono.ts'
 import { hasAppRight, supabaseAdmin } from '../utils/supabase.ts'
-import { getBundleUrl } from '../utils/downloadUrl.ts'
 
 interface DataDownload {
   app_id: string
   storage_provider: string
   user_id?: string
   id: number
+  isManifest?: boolean
 }
 
 export const app = new Hono()
@@ -18,7 +19,7 @@ app.use('/', useCors)
 app.post('/', middlewareAuth, async (c: Context) => {
   try {
     const body = await c.req.json<DataDownload>()
-    console.log('body', body)
+    console.log({ requestId: c.get('requestId'), context: 'post download link body', body })
     const authorization = c.req.header('authorization')
     if (!authorization)
       return c.json({ status: 'Cannot find authorization' }, 400)
@@ -44,19 +45,26 @@ app.post('/', middlewareAuth, async (c: Context) => {
     const ownerOrg = (bundle?.owner_org as any).created_by
 
     if (getBundleError) {
-      console.error('getBundleError', getBundleError)
-      return c.json({ status: 'Error unknow' }, 500)
+      console.error({ requestId: c.get('requestId'), context: 'getBundleError', error: getBundleError })
+      return c.json({ status: 'Error unknown' }, 500)
     }
 
     if (!ownerOrg) {
-      console.error('cannotGetOwnerOrg', bundle)
-      return c.json({ status: 'Error unknow' }, 500)
+      console.error({ requestId: c.get('requestId'), context: 'cannotGetOwnerOrg', bundle })
+      return c.json({ status: 'Error unknown' }, 500)
     }
 
-    const data = await getBundleUrl(c, ownerOrg, bundle)
-    if (!data)
-      return c.json({ status: 'Error unknow' }, 500)
-    return c.json({ url: data.url })
+    if (body.isManifest) {
+      const manifestEntries = await getManifestUrl(c, bundle)
+      return c.json({ manifest: manifestEntries })
+    }
+    else {
+      const data = await getBundleUrl(c, ownerOrg, bundle)
+      if (!data)
+        return c.json({ status: 'Error unknown' }, 500)
+
+      return c.json({ url: data.url })
+    }
   }
   catch (e) {
     return c.json({ status: 'Cannot get download link', error: JSON.stringify(e) }, 500)

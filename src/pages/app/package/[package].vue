@@ -1,25 +1,24 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useI18n } from 'petite-vue-i18n'
 import { computed, ref, watchEffect } from 'vue'
-import { gte } from 'semver'
-import { useMainStore } from '~/stores/main'
-import Spinner from '~/components/Spinner.vue'
+import { useRoute } from 'vue-router'
 import type { Stat } from '~/components/comp_def'
+import Spinner from '~/components/Spinner.vue'
+import { appIdToUrl, urlToAppId } from '~/services/conversion'
 import { getCapgoVersion, useSupabase } from '~/services/supabase'
 import { useDisplayStore } from '~/stores/display'
+import { useMainStore } from '~/stores/main'
 import type { Database } from '~/types/supabase.types'
-import { appIdToUrl, urlToAppId } from '~/services/conversion'
 
 const id = ref('')
 const { t } = useI18n()
-const route = useRoute()
+const route = useRoute('/app/package/[package]')
 const bundlesNb = ref(0)
 const devicesNb = ref(0)
 const updatesNb = ref(0)
 const channelsNb = ref(0)
 const capgoVersion = ref('')
-const canShowMobileStats = ref(false)
+const canShowMobileStats = ref(true)
 const main = useMainStore()
 const isLoading = ref(false)
 const supabase = useSupabase()
@@ -36,10 +35,6 @@ async function loadAppInfo() {
     app.value = dataApp || app.value
     const promises = []
     capgoVersion.value = await getCapgoVersion(id.value, app.value?.last_version)
-    // normalize version
-    // capgoVersion.value =
-    if (capgoVersion.value && gte(capgoVersion.value, '6.0.1')) // TODO: removed in 2025 if there is not more old plugin used
-      canShowMobileStats.value = true
     updatesNb.value = main.getTotalStatsByApp(id.value)
     devicesNb.value = main.getTotalMauByApp(id.value)
 
@@ -123,16 +118,18 @@ watchEffect(async () => {
 </script>
 
 <template>
-  <div v-if="isLoading" class="flex flex-col items-center justify-center h-full">
-    <Spinner size="w-40 h-40" />
-  </div>
-  <div v-else class="w-full h-full px-4 pt-4 mb-8 overflow-y-auto max-h-fit lg:px-8 sm:px-6">
-    <Usage :app-id="id" :show-mobile-stats="canShowMobileStats" />
+  <div>
+    <div v-if="isLoading" class="flex flex-col items-center justify-center h-full">
+      <Spinner size="w-40 h-40" />
+    </div>
+    <div v-else class="w-full h-full px-4 pt-8 mb-8 overflow-y-auto max-h-fit lg:px-8 sm:px-6">
+      <Usage :app-id="id" :show-mobile-stats="canShowMobileStats" />
 
-    <BlurBg id="app-stats" class="mb-10">
-      <template #default>
-        <StatsBar :stats="stats" />
-      </template>
-    </BlurBg>
+      <BlurBg id="app-stats" class="mb-10">
+        <template #default>
+          <StatsBar :stats="stats" />
+        </template>
+      </BlurBg>
+    </div>
   </div>
 </template>

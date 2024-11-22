@@ -1,12 +1,10 @@
 import type { Context } from '@hono/hono'
 
+import type { Database } from './supabase.types.ts'
+import type { Order } from './types.ts'
 import { createClient } from '@supabase/supabase-js'
 import { createCustomer } from './stripe.ts'
-import type { Database } from './supabase.types.ts'
 import { getEnv } from './utils.ts'
-import type { Person, Segments } from './plunk.ts'
-import { addDataContact } from './plunk.ts'
-import type { Order } from './types.ts'
 
 const DEFAULT_LIMIT = 1000
 // Import Supabase client
@@ -68,15 +66,6 @@ export function supabaseAdmin(c: Context) {
   return createClient<Database>(getEnv(c, 'SUPABASE_URL'), getEnv(c, 'SUPABASE_SERVICE_ROLE_KEY'), options)
 }
 
-export function updateOrCreateVersion(c: Context, update: Database['public']['Tables']['app_versions']['Insert']) {
-  console.log('updateOrCreateVersion', update)
-  return supabaseAdmin(c)
-    .from('app_versions')
-    .upsert(update)
-    .eq('app_id', update.app_id)
-    .eq('name', update.name)
-}
-
 export async function getAppsFromSB(c: Context): Promise<string[]> {
   const limit = 1000
   let page = 0
@@ -89,7 +78,7 @@ export async function getAppsFromSB(c: Context): Promise<string[]> {
       .range(page * limit, (page + 1) * limit - 1)
 
     if (error) {
-      console.error('Error getting apps from Supabase', error)
+      console.error({ requestId: c.get('requestId'), context: 'Error getting apps from Supabase', error })
       break
     }
 
@@ -103,18 +92,65 @@ export async function getAppsFromSB(c: Context): Promise<string[]> {
   return apps
 }
 
-export function updateOrCreateChannel(c: Context, update: Database['public']['Tables']['channels']['Insert']) {
-  console.log('updateOrCreateChannel', update)
+export async function updateOrCreateChannel(c: Context, update: Database['public']['Tables']['channels']['Insert']) {
+  console.log({ requestId: c.get('requestId'), context: 'updateOrCreateChannel', update })
   if (!update.app_id || !update.name || !update.created_by) {
-    console.log('missing app_id, name, or created_by')
+    console.log({ requestId: c.get('requestId'), context: 'missing app_id, name, or created_by' })
     return Promise.reject(new Error('missing app_id, name, or created_by'))
   }
-  return supabaseAdmin(c)
+
+  const { data: existingChannel } = await supabaseAdmin(c)
     .from('channels')
-    .upsert(update, { onConflict: 'app_id, name' })
+    .select('*')
     .eq('app_id', update.app_id)
     .eq('name', update.name)
     .eq('created_by', update.created_by)
+    .single()
+
+  if (existingChannel) {
+    const fieldsDiffer = Object.keys(update).some(key =>
+      (update as any)[key] !== (existingChannel as any)[key] && key !== 'created_at' && key !== 'updated_at',
+    )
+    if (!fieldsDiffer) {
+      console.log({ requestId: c.get('requestId'), context: 'No fields differ, no update needed' })
+      return Promise.resolve()
+    }
+  }
+
+  return supabaseAdmin(c)
+    .from('channels')
+    .upsert(update, { onConflict: 'app_id, name' })
+}
+
+export async function updateOrCreateChannelDevice(c: Context, update: Database['public']['Tables']['channel_devices']['Insert']) {
+  console.log({ requestId: c.get('requestId'), context: 'updateOrCreateChannelDevice', update })
+  if (!update.device_id || !update.channel_id || !update.app_id) {
+    console.log({ requestId: c.get('requestId'), context: 'missing device_id, channel_id, or app_id' })
+    return Promise.reject(new Error('missing device_id, channel_id, or app_id'))
+  }
+  update.device_id = update.device_id.toLowerCase()
+
+  const { data: existingChannelDevice } = await supabaseAdmin(c)
+    .from('channel_devices')
+    .select('*')
+    .eq('device_id', update.device_id)
+    .eq('channel_id', update.channel_id)
+    .eq('app_id', update.app_id)
+    .single()
+
+  if (existingChannelDevice) {
+    const fieldsDiffer = Object.keys(update).some(key =>
+      (update as any)[key] !== (existingChannelDevice as any)[key] && key !== 'created_at' && key !== 'updated_at',
+    )
+    if (!fieldsDiffer) {
+      console.log({ requestId: c.get('requestId'), context: 'No fields differ, no update needed' })
+      return Promise.resolve()
+    }
+  }
+
+  return supabaseAdmin(c)
+    .from('channel_devices')
+    .upsert(update, { onConflict: 'device_id, channel_id, app_id' })
 }
 
 export async function checkAppOwner(c: Context, userId: string | undefined, appId: string | undefined): Promise<boolean> {
@@ -144,7 +180,7 @@ export async function hasAppRight(c: Context, appId: string | undefined, userid:
     .rpc('has_app_right_userid', { appid: appId, right, userid })
 
   if (error) {
-    console.error('has_app_right_userid error', error)
+    console.error({ requestId: c.get('requestId'), context: 'has_app_right_userid error', error })
     return false
   }
 
@@ -160,10 +196,10 @@ export async function hasOrgRight(c: Context, orgId: string, userId: string, rig
     app_id: null as any,
   })
 
-  console.log(userRight)
+  console.log({ requestId: c.get('requestId'), context: 'check_min_rights (hasOrgRight)', userRight })
 
   if (userRight.error || !userRight.data) {
-    console.error('check_min_rights (hasOrgRight) error', userRight.error)
+    console.error({ requestId: c.get('requestId'), context: 'check_min_rights (hasOrgRight) error', error: userRight.error })
     return false
   }
 
@@ -233,7 +269,7 @@ export async function isGoodPlanOrg(c: Context, orgId: string): Promise<boolean>
     return data || false
   }
   catch (error) {
-    console.error('isGoodPlan error', orgId, error)
+    console.error({ requestId: c.get('requestId'), context: 'isGoodPlan error', orgId, error })
   }
   return false
 }
@@ -247,7 +283,7 @@ export async function isOnboardedOrg(c: Context, orgId: string): Promise<boolean
     return data || false
   }
   catch (error) {
-    console.error('isOnboarded error', orgId, error)
+    console.error({ requestId: c.get('requestId'), context: 'isOnboarded error', orgId, error })
   }
   return false
 }
@@ -261,7 +297,7 @@ export async function isOnboardingNeeded(c: Context, userId: string): Promise<bo
     return data || false
   }
   catch (error) {
-    console.error('isOnboardingNeeded error', userId, error)
+    console.error({ requestId: c.get('requestId'), context: 'isOnboardingNeeded error', userId, error })
   }
   return false
 }
@@ -275,7 +311,7 @@ export async function isCanceledOrg(c: Context, orgId: string): Promise<boolean>
     return data || false
   }
   catch (error) {
-    console.error('isCanceled error', orgId, error)
+    console.error({ requestId: c.get('requestId'), context: 'isCanceled error', orgId, error })
   }
   return false
 }
@@ -289,7 +325,7 @@ export async function isPayingOrg(c: Context, orgId: string): Promise<boolean> {
     return data || false
   }
   catch (error) {
-    console.error('isPayingOrg error', orgId, error)
+    console.error({ requestId: c.get('requestId'), context: 'isPayingOrg error', orgId, error })
   }
   return false
 }
@@ -303,7 +339,7 @@ export async function isTrialOrg(c: Context, orgId: string): Promise<number> {
     return data || 0
   }
   catch (error) {
-    console.error('isTrialOrg error', orgId, error)
+    console.error({ requestId: c.get('requestId'), context: 'isTrialOrg error', orgId, error })
   }
   return 0
 }
@@ -327,7 +363,7 @@ export async function isAllowedActionOrg(c: Context, orgId: string): Promise<boo
     return data || false
   }
   catch (error) {
-    console.error('isAllowedActionOrg error', orgId, error)
+    console.error({ requestId: c.get('requestId'), context: 'isAllowedActionOrg error', orgId, error })
   }
   return false
 }
@@ -368,20 +404,13 @@ export async function createApiKey(c: Context, userId: string) {
   return Promise.resolve()
 }
 
-export function userToPerson(user: Database['public']['Tables']['users']['Row'], customer: Database['public']['Tables']['stripe_info']['Row']): Person {
-  const person: Person = {
-    id: user.id,
-    product_id: customer.product_id,
-    customer_id: customer.customer_id,
-    nickname: `${user.first_name ?? ''} ${user.last_name ?? ''}`,
-    avatar: user.image_url ? user.image_url : undefined,
-    country: user.country ? user.country : undefined,
-  }
-  return person
-}
-
-export async function customerToSegmentOrg(c: Context, orgId: string, price_id: string, plan?: Database['public']['Tables']['plans']['Row'] | null): Promise<Segments> {
-  const segments: Segments = {
+export async function customerToSegmentOrg(
+  c: Context,
+  orgId: string,
+  price_id: string,
+  plan?: Database['public']['Tables']['plans']['Row'] | null,
+): Promise<{ segments: string[], deleteSegments: string[] }> {
+  const segmentsObj = {
     capgo: true,
     onboarded: await isOnboardedOrg(c, orgId),
     trial: false,
@@ -395,40 +424,58 @@ export async function customerToSegmentOrg(c: Context, orgId: string, price_id: 
     canceled: await isCanceledOrg(c, orgId),
     issueSegment: false,
   }
+
   const trialDaysLeft = await isTrialOrg(c, orgId)
   const paying = await isPayingOrg(c, orgId)
   const canUseMore = await isGoodPlanOrg(c, orgId)
 
-  if (!segments.onboarded)
-    return segments
+  if (!segmentsObj.onboarded) {
+    return processSegments(segmentsObj)
+  }
 
   if (!paying && trialDaysLeft > 1 && trialDaysLeft <= 7) {
-    segments.trial = true
-    segments.trial7 = true
+    segmentsObj.trial = true
+    segmentsObj.trial7 = true
   }
   else if (!paying && trialDaysLeft === 1) {
-    segments.trial = true
-    segments.trial1 = true
+    segmentsObj.trial = true
+    segmentsObj.trial1 = true
   }
-
   else if (!paying && !canUseMore) {
-    segments.trial = true
-    segments.trial0 = true
+    segmentsObj.trial = true
+    segmentsObj.trial0 = true
   }
-
   else if (paying && !canUseMore && plan) {
-    segments.overuse = true
-    segments.paying = true
+    segmentsObj.overuse = true
+    segmentsObj.paying = true
   }
-
   else if (paying && canUseMore && plan) {
-    segments.paying = true
+    segmentsObj.paying = true
   }
   else {
-    segments.issueSegment = true
+    segmentsObj.issueSegment = true
   }
 
-  return segments
+  return processSegments(segmentsObj)
+}
+
+function processSegments(segmentsObj: any): { segments: string[], deleteSegments: string[] } {
+  const segments: string[] = []
+  const deleteSegments: string[] = []
+
+  Object.entries(segmentsObj).forEach(([key, value]) => {
+    if (typeof value === 'boolean') {
+      if (value)
+        segments.push(key)
+      else
+        deleteSegments.push(key)
+    }
+    else if (typeof value === 'string' && value !== '') {
+      segments.push(`${key}:${value}`)
+    }
+  })
+
+  return { segments, deleteSegments }
 }
 
 export async function getStripeCustomer(c: Context, customerId: string) {
@@ -465,7 +512,7 @@ export async function createStripeCustomer(c: Context, org: Database['public']['
       trial_at: trial_at.toISOString(),
     })
   if (createInfoError)
-    console.log('createInfoError', createInfoError)
+    console.log({ requestId: c.get('requestId'), context: 'createInfoError', createInfoError })
 
   const { error: updateUserError } = await supabaseAdmin(c)
     .from('orgs')
@@ -474,25 +521,8 @@ export async function createStripeCustomer(c: Context, org: Database['public']['
     })
     .eq('id', org.id)
   if (updateUserError)
-    console.log('updateUserError', updateUserError)
-  const person: Person = {
-    id: org.id,
-    customer_id: customer.id,
-    product_id: soloPlan.name,
-    nickname: org.name,
-    avatar: org.logo ? org.logo : undefined,
-    // country: user.country ? user.country : undefined,
-  }
-  const { data: plan } = await supabaseAdmin(c)
-    .from('plans')
-    .select()
-    .eq('stripe_id', customer.id)
-    .single()
-  const segment = await customerToSegmentOrg(c, org.id, soloPlan.name, plan)
-  await addDataContact(c, org.management_email, { ...person, ...segment }).catch((e) => {
-    console.log('updatePerson error', e)
-  })
-  console.log('stripe_info done')
+    console.log({ requestId: c.get('requestId'), context: 'updateUserError', updateUserError })
+  console.log({ requestId: c.get('requestId'), context: 'stripe_info done' })
 }
 
 export function trackBandwidthUsageSB(
@@ -505,7 +535,7 @@ export function trackBandwidthUsageSB(
     .from('bandwidth_usage')
     .insert([
       {
-        device_id: deviceId,
+        device_id: deviceId.toLowerCase(),
         app_id: appId,
         file_size: fileSize,
       },
@@ -538,7 +568,7 @@ export function trackDeviceUsageSB(
     .from('device_usage')
     .insert([
       {
-        device_id: deviceId,
+        device_id: deviceId.toLowerCase(),
         app_id: appId,
       },
     ])
@@ -550,7 +580,7 @@ export function trackMetaSB(
   version_id: number,
   size: number,
 ) {
-  console.log('createStatsMeta', app_id, version_id, size)
+  console.log({ requestId: c.get('requestId'), context: 'createStatsMeta', app_id, version_id, size })
   return supabaseAdmin(c)
     .from('version_meta')
     .insert([
@@ -569,7 +599,7 @@ export function trackDevicesSB(c: Context, app_id: string, device_id: string, ve
       {
         app_id,
         updated_at: new Date().toISOString(),
-        device_id,
+        device_id: device_id.toLowerCase(),
         platform,
         plugin_version,
         os_version,
@@ -580,7 +610,7 @@ export function trackDevicesSB(c: Context, app_id: string, device_id: string, ve
         is_emulator,
       },
     )
-    .eq('device_id', device_id)
+    .eq('device_id', device_id.toLowerCase())
 }
 
 export function trackLogsSB(c: Context, app_id: string, device_id: string, action: Database['public']['Enums']['stats_action'], version_id: number) {
@@ -590,7 +620,7 @@ export function trackLogsSB(c: Context, app_id: string, device_id: string, actio
       {
         app_id,
         created_at: new Date().toISOString(),
-        device_id,
+        device_id: device_id.toLowerCase(),
         action,
         version: version_id,
       },
@@ -637,7 +667,7 @@ export async function readStatsSB(c: Context, app_id: string, period_start?: str
     query = query.lt('created_at', new Date(period_end).toISOString())
 
   if (deviceIds && deviceIds.length) {
-    console.log('deviceIds', deviceIds)
+    console.log({ requestId: c.get('requestId'), context: 'deviceIds', deviceIds })
     if (deviceIds.length === 1)
       query = query.eq('device_id', deviceIds[0])
     else
@@ -645,7 +675,7 @@ export async function readStatsSB(c: Context, app_id: string, period_start?: str
   }
 
   if (search) {
-    console.log('search', search)
+    console.log({ requestId: c.get('requestId'), context: 'search', search })
     if (deviceIds && deviceIds.length)
       query = query.ilike('version_build', `${search}%`)
     else
@@ -655,7 +685,7 @@ export async function readStatsSB(c: Context, app_id: string, period_start?: str
   if (order?.length) {
     order.forEach((col) => {
       if (col.sortable && typeof col.sortable === 'string') {
-        console.log('order', col.key, col.sortable)
+        console.log({ requestId: c.get('requestId'), context: 'order', key: col.key, sortable: col.sortable })
         query = query.order(col.key as string, { ascending: col.sortable === 'asc' })
       }
     })
@@ -664,7 +694,7 @@ export async function readStatsSB(c: Context, app_id: string, period_start?: str
   const { data, error } = await query
 
   if (error) {
-    console.error('Error reading stats list', error)
+    console.error({ requestId: c.get('requestId'), context: 'Error reading stats list', error })
     return []
   }
 
@@ -674,7 +704,7 @@ export async function readStatsSB(c: Context, app_id: string, period_start?: str
 export async function readDevicesSB(c: Context, app_id: string, range_start: number, range_end: number, version_id?: string, deviceIds?: string[], search?: string, order?: Order[], limit = DEFAULT_LIMIT) {
   const supabase = supabaseAdmin(c)
 
-  console.log('readDevicesSB', app_id, range_start, range_end, version_id, deviceIds, search)
+  console.log({ requestId: c.get('requestId'), context: 'readDevicesSB', app_id, range_start, range_end, version_id, deviceIds, search })
   let query = supabase
     .from('devices')
     .select('*')
@@ -683,7 +713,7 @@ export async function readDevicesSB(c: Context, app_id: string, range_start: num
     .limit(limit)
 
   if (deviceIds && deviceIds.length) {
-    console.log('deviceIds', deviceIds)
+    console.log({ requestId: c.get('requestId'), context: 'deviceIds', deviceIds })
     if (deviceIds.length === 1)
       query = query.eq('device_id', deviceIds[0])
     else
@@ -691,7 +721,7 @@ export async function readDevicesSB(c: Context, app_id: string, range_start: num
   }
 
   if (search) {
-    console.log('search', search)
+    console.log({ requestId: c.get('requestId'), context: 'search', search })
     if (deviceIds && deviceIds.length)
       query = query.ilike('custom_id', `${search}%`)
     else
@@ -700,7 +730,7 @@ export async function readDevicesSB(c: Context, app_id: string, range_start: num
   if (order?.length) {
     order.forEach((col) => {
       if (col.sortable && typeof col.sortable === 'string') {
-        console.log('order', col.key, col.sortable)
+        console.log({ requestId: c.get('requestId'), context: 'order', key: col.key, sortable: col.sortable })
         query = query.order(col.key as string, { ascending: col.sortable === 'asc' })
       }
     })
@@ -711,7 +741,7 @@ export async function readDevicesSB(c: Context, app_id: string, range_start: num
   const { data, error } = await query
 
   if (error) {
-    console.error('Error reading device list', error)
+    console.error({ requestId: c.get('requestId'), context: 'Error reading device list', error })
     return []
   }
 
@@ -738,4 +768,73 @@ export async function getCurrentPlanNameOrg(c: Context, orgId?: string): Promise
     throw new Error(error.message)
 
   return data || DEFAUL_PLAN_NAME
+}
+
+interface UpdateStats {
+  apps: {
+    app_id: string
+    failed: number
+    set: number
+    get: number
+    success_rate: number
+    healthy: boolean
+  }[]
+  total: {
+    failed: number
+    set: number
+    get: number
+    success_rate: number
+    healthy: boolean
+  }
+}
+
+export async function getUpdateStatsSB(c: Context): Promise<UpdateStats> {
+  const { data, error } = await supabaseAdmin(c)
+    .rpc('get_update_stats')
+
+  if (error) {
+    console.error({ requestId: c.get('requestId'), context: 'Error getting update stats', error })
+    return {
+      apps: [],
+      total: {
+        failed: 0,
+        set: 0,
+        get: 0,
+        success_rate: 100,
+        healthy: true,
+      },
+    }
+  }
+
+  const apps = data.map((app: any) => {
+    const totalEvents = app.failed + app.install + app.get
+    const successRate = totalEvents > 0 ? ((app.install + app.get) / totalEvents) * 100 : 100
+    return {
+      app_id: app.app_id,
+      failed: Number(app.failed),
+      set: Number(app.install),
+      get: Number(app.get),
+      success_rate: Number(successRate.toFixed(2)),
+      healthy: successRate >= 70,
+    }
+  })
+
+  const total = apps.reduce((acc, app) => {
+    acc.failed += app.failed
+    acc.set += app.set
+    acc.get += app.get
+    return acc
+  }, { failed: 0, set: 0, get: 0 })
+
+  const totalEvents = total.failed + total.set + total.get
+  const totalSuccessRate = totalEvents > 0 ? ((total.set + total.get) / totalEvents) * 100 : 100
+
+  return {
+    apps,
+    total: {
+      ...total,
+      success_rate: Number(totalSuccessRate.toFixed(2)),
+      healthy: totalSuccessRate >= 70,
+    },
+  }
 }

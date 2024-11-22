@@ -1,20 +1,24 @@
 <script setup lang="ts">
-import { ref, watchEffect } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
 import { setErrors } from '@formkit/core'
 import { FormKit, FormKitMessages } from '@formkit/vue'
-import { toast } from 'vue-sonner'
-import { useSupabase } from '~/services/supabase'
-import Spinner from '~/components/Spinner.vue'
 import iconEmail from '~icons/oui/email?raw'
 import iconPassword from '~icons/ph/key?raw'
+import { useI18n } from 'petite-vue-i18n'
+import { ref, watchEffect } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
+import VueTurnstile from 'vue-turnstile'
+import Spinner from '~/components/Spinner.vue'
+import { useSupabase } from '~/services/supabase'
 
 const { t } = useI18n()
 const router = useRouter()
-const route = useRoute()
+const route = useRoute('/forgot_password')
 const supabase = useSupabase()
 const step = ref(1)
+const turnstileToken = ref('')
+
+const captchaKey = ref(import.meta.env.VITE_CAPTCHA_KEY)
 
 const isLoading = ref(false)
 const isLoadingMain = ref(true)
@@ -24,13 +28,20 @@ async function submit(form: { email: string, password: string }) {
   if (step.value === 1) {
     const redirectTo = `${import.meta.env.VITE_APP_URL}/forgot_password?step=2`
     // console.log('redirect', redirectTo)
-    const { error } = await supabase.auth.resetPasswordForEmail(form.email, { redirectTo })
+    const { error } = await supabase.auth.resetPasswordForEmail(form.email, { redirectTo, captchaToken: turnstileToken.value })
     setTimeout(() => {
       isLoading.value = false
     }, 5000)
-    if (error)
+    if (error) {
+      if (error.message.includes('captcha')) {
+        toast.error(t('captcha-fail'))
+      }
       setErrors('forgot-password', [error.message], {})
-    else toast.success(t('forgot-check-email'))
+      console.error('error reset', error)
+    }
+    else {
+      toast.success(t('forgot-check-email'))
+    }
   }
   else if (step.value === 2 && route.hash) {
     const queryString = route.hash.replace('#', '')
@@ -93,7 +104,7 @@ watchEffect(() => {
         </div>
 
         <div class="relative max-w-md mx-auto mt-8 md:mt-4">
-          <div class="overflow-hidden bg-white rounded-md shadow-md">
+          <div class="overflow-hidden bg-white rounded-md shadow-md dark:bg-slate-800">
             <div class="px-4 py-6 sm:px-8 sm:py-7">
               <FormKit id="forgot-pass" type="form" :actions="false" @submit="submit">
                 <div class="space-y-5 text-gray-500">
@@ -108,6 +119,10 @@ watchEffect(() => {
                       autocomplete="email"
                       validation="required:trim"
                     />
+                    <template v-if="!!captchaKey">
+                      <VueTurnstile v-model="turnstileToken" size="flexible" :site-key="captchaKey" />
+                    </template>
+                    <FormKitMessages />
                   </div>
 
                   <div v-if="step === 2">
@@ -139,11 +154,10 @@ watchEffect(() => {
                       :validation-label="t('password-confirmatio')"
                     />
                   </div>
-                  <FormKitMessages />
 
                   <div>
                     <button type="submit" class="inline-flex items-center justify-center w-full">
-                      <svg v-if="isLoading" class="inline-block w-5 h-5 mr-3 -ml-1 text-gray-900 align-middle animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg v-if="isLoading" class="inline-block w-5 h-5 mr-3 -ml-1 text-gray-900 align-middle dark:text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle
                           class="opacity-25"
                           cx="12"
@@ -162,7 +176,7 @@ watchEffect(() => {
                 </div>
               </FormKit>
               <div class="flex flex-row justify-center w-full mt-5">
-                <router-link to="/login" class="text-sm font-medium text-orange-400 transition-all duration-200 focus:text-orange-500 hover:text-orange-500 hover:underline">
+                <router-link to="/login" class="text-sm font-medium text-orange-500 transition-all duration-200 focus:text-orange-600 hover:text-orange-600 hover:underline">
                   {{ t('back-to-login-page') }}
                 </router-link>
               </div>

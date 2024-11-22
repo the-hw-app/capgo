@@ -1,28 +1,28 @@
 <script setup lang="ts">
-import debounce from 'lodash.debounce'
-import { computed, onMounted, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import VueDatePicker from '@vuepic/vue-datepicker'
-import '@vuepic/vue-datepicker/dist/main.css'
-import dayjs from 'dayjs'
-import { FormKit } from '@formkit/vue'
-import { useDark } from '@vueuse/core'
 import type { TableColumn } from './comp_def'
-import type { Organization } from '~/stores/organization'
-import IconSort from '~icons/lucide/chevrons-up-down'
-import IconSortUp from '~icons/lucide/chevron-up'
-import IconSortDown from '~icons/lucide/chevron-down'
-import IconSearch from '~icons/ic/round-search?raw'
-import IconReload from '~icons/tabler/reload'
-import IconFastBackward from '~icons/ic/round-keyboard-double-arrow-left'
-import IconClock from '~icons/heroicons/clock'
+import { FormKit } from '@formkit/vue'
+import VueDatePicker from '@vuepic/vue-datepicker'
+import { useDark, useDebounceFn } from '@vueuse/core'
 import IconCalendar from '~icons/heroicons/calendar'
+import IconClock from '~icons/heroicons/clock'
+import IconFastBackward from '~icons/ic/round-keyboard-double-arrow-left'
+import IconSearch from '~icons/ic/round-search?raw'
+import IconSortDown from '~icons/lucide/chevron-down'
+import IconSortUp from '~icons/lucide/chevron-up'
+import IconSort from '~icons/lucide/chevrons-up-down'
+import IconReload from '~icons/tabler/reload'
+import dayjs from 'dayjs'
+import { useI18n } from 'petite-vue-i18n'
+import { computed, onMounted, ref, watch } from 'vue'
+import type { Organization } from '~/stores/organization'
+import '@vuepic/vue-datepicker/dist/main.css'
 
 interface Props {
   rowClick?: boolean
   isLoading?: boolean
   filterText?: string
   filters?: { [key: string]: boolean }
+  range?: [Date, Date]
   searchPlaceholder?: string
   search?: string
   currentPage: number
@@ -41,14 +41,14 @@ const emit = defineEmits([
   'fastBackward',
   'update:search',
   'update:filters',
+  'update:range',
   'update:columns',
   'update:currentPage',
   'filterClick',
   'rowClick',
   'sortClick',
-  'rangeChange',
 ])
-const dropdown = ref<HTMLElement | null>(null)
+const dropdown = useTemplateRef('dropdown')
 function closeDropdown() {
   if (dropdown.value) {
     dropdown.value.removeAttribute('open')
@@ -59,7 +59,7 @@ const isDark = useDark()
 const searchVal = ref(props.search || '')
 const currentSelected = ref<'general' | 'precise'>('general')
 type Minutes = 1 | 3 | 15
-const currentGeneralTime = ref<Minutes>(1)
+const currentGeneralTime = ref<Minutes>(3)
 const preciseDates = ref<[Date, Date]>()
 const thisOrganization = ref<Organization | null>(null)
 const organizationStore = useOrganizationStore()
@@ -83,6 +83,10 @@ const startTime = computed(() => {
     },
   ]
 })
+function resetTime() {
+  setTime(currentGeneralTime.value)
+  emit('reset')
+}
 
 function sortClick(key: number) {
   if (!props.columns[key].sortable)
@@ -107,13 +111,13 @@ if (props.filters) {
     emit('reload')
   })
 }
-
 watch(preciseDates, () => {
-  console.log('preciseDates', preciseDates.value)
+  // console.log('preciseDates', preciseDates.value)
+  emit('update:range', preciseDates.value)
   emit('reload')
 })
 
-watch(searchVal, debounce(() => {
+watch(searchVal, useDebounceFn(() => {
   emit('update:search', searchVal.value)
   emit('reload')
 }, 500))
@@ -138,6 +142,7 @@ async function clickRight() {
 async function setTime(time: Minutes) {
   currentSelected.value = 'general'
   currentGeneralTime.value = time
+  console.log('setTime', time)
   if (time === 1) {
     preciseDates.value = [
       dayjs().subtract(1, 'minute').toDate(),
@@ -183,9 +188,9 @@ onMounted(async () => {
 
 <template>
   <div class="pb-4 overflow-x-auto md:pb-0 min-h-[500px]">
-    <div class="flex items-start justify-between pb-4 md:items-center">
+    <div class="flex items-start justify-between p-3 pb-4 md:items-center">
       <div class="flex h-10 md:mb-0">
-        <button class="mr-2 inline-flex items-center border border-gray-300 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-500 dark:border-gray-600 dark:bg-gray-800 hover:bg-gray-100 dark:text-white focus:outline-none focus:ring-4 focus:ring-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700" type="button" @click="emit('reset')">
+        <button class="mr-2 inline-flex items-center border border-gray-300 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-500 dark:border-gray-600 dark:bg-gray-800 hover:bg-gray-100 dark:text-white focus:outline-none focus:ring-4 focus:ring-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700" type="button" @click="resetTime">
           <IconReload v-if="!isLoading" class="m-1 mr-2" />
           <Spinner v-else size="w-[16.8px] h-[16.8px] m-1 mr-2" />
           <span class="hidden text-sm md:block">{{ t('reload') }}</span>
@@ -193,10 +198,10 @@ onMounted(async () => {
       </div>
       <div class="flex h-10 mr-auto text-sm font-medium text-gray-500 border divide-gray-100 rounded-lg dark:divide-gray-300 md:ml-4 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-4">
         <div ref="dropdown" class="dropdown dropdown-end">
-          <div tabindex="0" role="button" class="flex flex-row items-center justify-center flex-auto h-10 px-3 rounded-l-lg cursor-pointer md:px-6" :class="{ 'general': currentSelected, 'bg-gray-100 text-gray-600 dark:text-gray-300 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-900': currentSelected === 'general' }">
+          <button tabindex="0" class="flex flex-row items-center justify-center flex-auto h-10 px-3 rounded-l-lg cursor-pointer md:px-6" :class="{ 'general': currentSelected, 'bg-gray-100 text-gray-600 dark:text-gray-300 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-900': currentSelected === 'general' }">
             <IconClock class="mr-1" />
             <span class="hidden md:block">{{ currentGeneralTime === 1 ? t('last-minute') : (currentGeneralTime === 3 ? t('last-3-minutes') : t('last-15-minutes')) }}</span>
-          </div>
+          </button>
           <ul tabindex="0" class="dropdown-content menu dark:bg-base-100 bg-white rounded-box z-[1] w-52 p-2 shadow">
             <li><a :class="{ 'bg-gray-300 dark:bg-gray-900': currentGeneralTime === 1 }" @click="setTime(1)">{{ t('last-minute') }}</a></li>
             <li><a :class="{ 'bg-gray-300 dark:bg-gray-900': currentGeneralTime === 3 }" @click="setTime(3)">{{ t('last-3-minutes') }}</a></li>
@@ -304,7 +309,7 @@ onMounted(async () => {
         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
           <tr>
             <th v-for="(col, i) in columns" :key="i" scope="col" class="px-6 py-3" :class="{ 'cursor-pointer': col.sortable, 'hidden md:table-cell': !col.mobile }" @click="sortClick(i)">
-              <div class="flex items-center">
+              <div class="flex items-center first-letter:uppercase">
                 {{ col.label }}
                 <div v-if="col.sortable">
                   <IconSortUp v-if="col.sortable === 'asc'" />

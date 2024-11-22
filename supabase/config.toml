@@ -133,21 +133,9 @@ verify_jwt = false
 [functions.updates]
 verify_jwt = false
 
-[functions.updates_debug]
-verify_jwt = false
-
 [functions.stats]
 verify_jwt = false
 
-# DEPRECATED TODO: to remove when all user got the latest CLI
-
-[functions.upload_link]
-verify_jwt = false
-
-[functions.get_stats]
-verify_jwt = false
-
-# END of deprecated
 
 # PRIVATE ENDPOINTS
 
@@ -162,4 +150,7 @@ verify_jwt = false
 # SCRAPPING ENDPOINTS
 
 [functions.scrapping]
+verify_jwt = false
+
+[functions.files]
 verify_jwt = false

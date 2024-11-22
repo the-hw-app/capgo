@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
-import { ref, watch, watchEffect } from 'vue'
 import { storeToRefs } from 'pinia'
-import Steps from '../../components/dashboard/Steps.vue'
-import Dashboard from '../../components/dashboard/Dashboard.vue'
-import { useOrganizationStore } from '~/stores/organization'
+import { ref, watch, watchEffect } from 'vue'
+import { useRoute } from 'vue-router'
 import Spinner from '~/components/Spinner.vue'
 import { useSupabase } from '~/services/supabase'
 import { useDisplayStore } from '~/stores/display'
+import { useOrganizationStore } from '~/stores/organization'
 import type { Database } from '~/types/supabase.types'
+import Dashboard from '../../components/dashboard/Dashboard.vue'
+import Steps from '../../components/dashboard/Steps.vue'
 
-const route = useRoute()
+const route = useRoute('/app/home')
 const organizationStore = useOrganizationStore()
 const isLoading = ref(false)
 const supabase = useSupabase()
@@ -52,11 +52,11 @@ watch(currentOrganization, async () => {
 
 watchEffect(async () => {
   if (route.path === '/app/home') {
+    displayStore.NavTitle = ''
     isLoading.value = true
     // await organizationStore.dedupFetchOrganizations()
     await getMyApps()
     isLoading.value = false
-    displayStore.NavTitle = ''
   }
 })
 </script>

@@ -1,11 +1,10 @@
-import { Hono } from 'hono/tiny'
 import type { Context } from '@hono/hono'
-import { BRES, middlewareAPISecret } from '../utils/hono.ts'
 import type { InsertPayload } from '../utils/supabase.ts'
-import { createApiKey } from '../utils/supabase.ts'
 import type { Database } from '../utils/supabase.types.ts'
-import { addContact, trackEvent } from '../utils/plunk.ts'
+import { Hono } from 'hono/tiny'
+import { BRES, middlewareAPISecret } from '../utils/hono.ts'
 import { logsnag } from '../utils/logsnag.ts'
+import { createApiKey } from '../utils/supabase.ts'
 
 export const app = new Hono()
 
@@ -14,42 +13,29 @@ app.post('/', middlewareAPISecret, async (c: Context) => {
     const table: keyof Database['public']['Tables'] = 'users'
     const body = await c.req.json<InsertPayload<typeof table>>()
     if (body.table !== table) {
-      console.log(`Not ${table}`)
+      console.log({ requestId: c.get('requestId'), context: `Not ${table}` })
       return c.json({ status: `Not ${table}` }, 200)
     }
     if (body.type !== 'INSERT') {
-      console.log('Not INSERT')
+      console.log({ requestId: c.get('requestId'), context: 'Not INSERT' })
       return c.json({ status: 'Not INSERT' }, 200)
     }
     const record = body.record
-    console.log('record', record)
+    console.log({ requestId: c.get('requestId'), context: 'record', record })
     await Promise.all([
       createApiKey(c, record.id),
-      addContact(c, record.email, {
-        first_name: record.first_name || '',
-        last_name: record.last_name || '',
-        nickname: `${record.first_name || ''} ${record.last_name || ''}`,
-        image_url: record.image_url ? record.image_url : undefined,
-      }),
     ])
-    console.log('createCustomer stripe')
+    console.log({ requestId: c.get('requestId'), context: 'createCustomer stripe' })
     if (record.customer_id)
       return c.json(BRES)
     const LogSnag = logsnag(c)
-    await Promise.all([
-      trackEvent(c, record.email, {
-        first_name: record.first_name || '',
-        last_name: record.last_name || '',
-        nickname: `${record.first_name || ''} ${record.last_name || ''}`,
-      }, 'user:register'),
-      LogSnag.track({
-        channel: 'user-register',
-        event: 'User Joined',
-        icon: '🎉',
-        user_id: record.id,
-        notify: true,
-      }),
-    ])
+    await LogSnag.track({
+      channel: 'user-register',
+      event: 'User Joined',
+      icon: '🎉',
+      user_id: record.id,
+      notify: true,
+    }).catch()
     return c.json(BRES)
   }
   catch (e) {

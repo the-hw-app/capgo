@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import { Capacitor } from '@capacitor/core'
+import { useI18n } from 'petite-vue-i18n'
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
+import { openMessenger } from '~/services/bento'
+import { isSpoofed, saveSpoof, unspoofUser, useSupabase } from '~/services/supabase'
+import { useDisplayStore } from '~/stores/display'
 import { useMainStore } from '~/stores/main'
-import { openMessenger } from '~/services/chatwoot'
-import IconDown from '~icons/material-symbols/keyboard-arrow-down-rounded'
 
 const { t } = useI18n()
-const dropdown = ref<HTMLElement | null>(null)
 const router = useRouter()
 const main = useMainStore()
-const isMobile = Capacitor.isNativePlatform()
+const displayStore = useDisplayStore()
+const isMobile = ref(Capacitor.isNativePlatform())
 const acronym = computed(() => {
   let res = 'MD'
-  if (main.user?.first_name && main.user.last_name)
+  if (main.user?.first_name && main.user?.last_name)
     res = main.user?.first_name[0] + main.user?.last_name[0]
   else if (main.user?.first_name)
     res = main.user?.first_name[0]
@@ -22,63 +24,164 @@ const acronym = computed(() => {
     res = main.user?.last_name[0]
   return res.toUpperCase()
 })
-onClickOutside(dropdown, () => closeDropdown())
+const isLoading = ref(false)
+
 function openSupport() {
   openMessenger()
 }
-function closeDropdown() {
-  if (dropdown.value) {
-    dropdown.value.removeAttribute('open')
+
+async function openLogAsDialog() {
+  let userId = ''
+  displayStore.dialogOption = {
+    header: t('log-as'),
+    input: true,
+    buttons: [
+      {
+        text: t('button-cancel'),
+        role: 'cancel',
+      },
+      {
+        text: t('log-as'),
+        handler: () => {
+          userId = displayStore.dialogInputText
+        },
+      },
+    ],
+  }
+  displayStore.showDialog = true
+  await displayStore.onDialogDismiss()
+
+  if (userId) {
+    isLoading.value = true
+    await setLogAs(userId)
+    isLoading.value = false
   }
 }
 
-function logOut() {
-  main.logout().then(() => router.replace('/login'))
+async function setLogAs(id: string) {
+  if (isSpoofed())
+    unspoofUser()
+
+  const supabase = await useSupabase()
+  const { data, error } = await supabase.functions.invoke('private/log_as', {
+    body: { user_id: id },
+  })
+
+  if (error) {
+    toast.error('Cannot log in, see console')
+    console.error(error)
+    return
+  }
+
+  const { jwt: newJwt, refreshToken: newRefreshToken } = data
+
+  if (!newJwt || !newRefreshToken) {
+    toast.error('Cannot log in, see console')
+    console.error('No data or token?', data)
+    return
+  }
+
+  const { data: currentSession, error: sessionError } = await supabase.auth.getSession()
+  if (sessionError || !currentSession?.session) {
+    console.error('No current session', sessionError)
+    toast.error('Cannot log in, see console')
+    return
+  }
+
+  const { access_token: currentJwt, refresh_token: currentRefreshToken } = currentSession.session
+
+  const { error: authError } = await supabase.auth.setSession({ access_token: newJwt, refresh_token: newRefreshToken })
+  if (authError) {
+    console.error('Auth error', authError)
+    toast.error('Cannot log in, see console')
+    return
+  }
+
+  saveSpoof(currentJwt, currentRefreshToken)
+  toast.success('Spoofed, will reload')
+  setTimeout(() => {
+    window.location.reload()
+  }, 1000)
+}
+
+function resetSpoofedUser() {
+  if (unspoofUser()) {
+    toast.error('Stop Spoofed, will reload')
+    setTimeout(() => {
+      window.location.reload()
+    }, 1000)
+  }
+}
+
+async function logOut() {
+  displayStore.dialogOption = {
+    header: t('are-u-sure'),
+    buttons: [
+      {
+        text: t('button-cancel'),
+        role: 'cancel',
+      },
+      {
+        text: t('logout'),
+        role: 'danger',
+        id: 'confirm-button',
+        handler: async () => {
+          main.logout().then(() => router.replace('/login'))
+        },
+      },
+    ],
+  }
+  displayStore.showDialog = true
+  await displayStore.onDialogDismiss()
 }
 </script>
 
 <template>
   <div>
-    <details ref="dropdown" class="dropdown dropdown-end">
-      <summary class="m-1 btn btn-outline btn-sm text-slate-800 dark:text-white">
-        <img v-if="main.user?.image_url" class="w-6 h-6 mask mask-squircle" :src="main.user?.image_url" width="32" height="32" alt="User">
-        <div v-else class="flex items-center justify-center w-6 h-6 border border-black rounded-full dark:border-white">
-          <p>{{ acronym }}</p>
-        </div>
-        <div class="flex items-center truncate">
-          <span class="hidden ml-2 text-sm font-medium truncate md:block dark:text-white group-hover:text-slate-800 dark:group-hover:text-slate-100">{{ `${main.user?.first_name} ${main.user?.last_name}` }}</span>
-          <IconDown class="w-6 h-6 ml-1 fill-current text-slate-400" />
-        </div>
-      </summary>
-      <ul class="dropdown-content dark:bg-base-100 bg-white rounded-box z-[1] w-52 p-2 shadow" @click="closeDropdown()">
-        <li class="text-sm text-gray-900 border-b border-gray-200 dark:text-white">
-          <div>{{ `${main.user?.first_name} ${main.user?.last_name}` }}</div>
-          <div class="font-medium truncate">
-            {{ main.user?.email }}
+    <div class="relative">
+      <div class="flex flex-col p-4 space-y-2 bg-gray-300 shadow dark:bg-base-100 rounded-box">
+        <div class="flex items-center mb-4">
+          <img v-if="main.user?.image_url" class="w-10 h-10 mr-3 mask mask-squircle" :src="main.user?.image_url" alt="User" width="32" height="32">
+          <div v-else class="p-2 mr-3 bg-gray-700 mask mask-squircle">
+            <span class="font-medium text-gray-300">
+              {{ acronym }}
+            </span>
           </div>
-        </li>
-        <li>
-          <router-link to="/dashboard/settings/account" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
-            {{ t('settings') }}
-          </router-link>
-        </li>
-        <li v-if="isMobile">
-          <router-link to="/app/modules_test" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
-            {{ t('module-heading') }}
-          </router-link>
-        </li>
-        <li v-if="isMobile">
-          <router-link to="/app/modules" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
-            {{ t('module-heading') }} {{ t('tests') }}
-          </router-link>
-        </li>
-        <li>
-          <a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white" @click="openSupport">{{ t('support') }}</a>
-        </li>
-        <li class="border-t border-gray-200">
-          <a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white" @click="logOut">{{ t('sign-out') }}</a>
-        </li>
-      </ul>
-    </details>
+          <div class="min-w-0">
+            <p class="font-medium truncate">
+              {{ `${main.user?.first_name} ${main.user?.last_name}` }}
+            </p>
+            <p class="text-sm text-gray-600 truncate dark:text-gray-400">
+              {{ main.user?.email }}
+            </p>
+          </div>
+        </div>
+        <router-link to="/dashboard/settings/account" class="block px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
+          {{ t('settings') }}
+        </router-link>
+        <router-link v-if="isMobile" to="/app/modules" class="block px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
+          {{ t('module-heading') }}
+        </router-link>
+        <router-link v-if="isMobile" to="/app/modules_test" class="block px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
+          {{ t('module-heading') }} {{ t('tests') }}
+        </router-link>
+        <div class="block px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white" @click="openSupport">
+          {{ t('support') }}
+        </div>
+        <div v-if="main.isAdmin && !isSpoofed()" class="block px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white" :class="{ 'opacity-50 cursor-not-allowed': isLoading }" @click="openLogAsDialog">
+          <span v-if="!isLoading">{{ t('log-as') }}</span>
+          <span v-else class="flex items-center">
+            <Spinner size="w-4 h-4" class="mr-2" />
+            {{ t('loading') }}
+          </span>
+        </div>
+        <div v-if="isSpoofed()" class="block px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white" @click="resetSpoofedUser">
+          {{ t('reset-spoofed-user') }}
+        </div>
+        <div class="block px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white" @click="logOut">
+          {{ t('sign-out') }}
+        </div>
+      </div>
+    </div>
   </div>
 </template>

@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { storeToRefs } from 'pinia'
-import { toast } from 'vue-sonner'
+import Plus from '~icons/heroicons/plus'
 import Trash from '~icons/heroicons/trash'
 import Wrench from '~icons/heroicons/Wrench'
+import { useI18n } from 'petite-vue-i18n'
+import { storeToRefs } from 'pinia'
+import { onMounted, ref, watch } from 'vue'
 
+import { toast } from 'vue-sonner'
+import { useSupabase } from '~/services/supabase'
+import { useDisplayStore } from '~/stores/display'
+import { useMainStore } from '~/stores/main'
 import { useOrganizationStore } from '~/stores/organization'
 import type { ExtendedOrganizationMember, ExtendedOrganizationMembers } from '~/stores/organization'
-import Plus from '~icons/heroicons/plus'
 import type { Database } from '~/types/supabase.types'
-import { useDisplayStore } from '~/stores/display'
-import { useSupabase } from '~/services/supabase'
-import { useMainStore } from '~/stores/main'
 
 const { t } = useI18n()
 const displayStore = useDisplayStore()
@@ -47,6 +47,7 @@ async function showPermModal(invite: boolean): Promise<Database['public']['Enums
   displayStore.dialogOption = {
     header: t('select-user-perms'),
     message: t('select-user-perms-expanded'),
+    size: 'max-w-fit',
     buttons: [
       {
         text: t('button-cancel'),
@@ -72,11 +73,13 @@ async function showPermModal(invite: boolean): Promise<Database['public']['Enums
         role: 'admin',
         handler: () => permision = invite ? 'invite_admin' : 'admin',
       },
-      {
-        text: t('key-super-admin'),
-        role: 'super_admin',
-        handler: () => permision = invite ? 'invite_super_admin' : 'super_admin',
-      },
+      ...(isSuperAdmin()
+        ? [{
+            text: t('key-super-admin'),
+            role: 'super_admin',
+            handler: () => permision = invite ? 'invite_super_admin' : 'super_admin',
+          }]
+        : []),
     ],
   }
   displayStore.showDialog = true
@@ -250,51 +253,56 @@ function acronym(email: string) {
 function canEdit(member: ExtendedOrganizationMember) {
   return (organizationStore.hasPermisisonsInRole(organizationStore.currentRole, ['admin', 'super_admin'])) && (member.uid !== currentOrganization?.value?.created_by)
 }
+function isSuperAdmin() {
+  return organizationStore.hasPermisisonsInRole(organizationStore.currentRole, ['super_admin'])
+}
 function canDelete(member: ExtendedOrganizationMember) {
   return (member.uid === main.user?.id || currentOrganization?.value?.created_by === main.user?.id || organizationStore.currentRole === 'admin') && member.uid !== currentOrganization?.value?.created_by
 }
 </script>
 
 <template>
-  <div class="h-full p-8 overflow-hidden max-h-fit grow md:pb-0">
-    <div class="flex justify-between w-full">
-      <h2 class="mb-5 text-2xl font-bold text-slate-800 dark:text-white">
-        {{ t('members') }}
-      </h2>
-      <button type="button" class="btn btn-outline btn-secondary" @click="showInviteModal">
-        <Plus />
-        <p class="hidden ml-2 md:block">
-          {{ t('add-member') }}
-        </p>
-      </button>
-    </div>
-    <div class="flex flex-col overflow-y-auto md:mx-auto md:mt-5 md:w-full ">
-      <dl id="members-div" class="divide-y divide-gray-500">
-        <div v-for="member in members" :key="member.id">
-          <div id="member-card" class="flex justify-between my-2 ml-2 md:my-6">
-            <div class="hidden md:flex">
-              <img
-                v-if="member?.image_url" class="object-cover w-20 h-20 mask mask-squircle" :src="member.image_url"
-                width="80" height="80" alt="profile_photo"
-              >
-              <div v-else class="flex items-center justify-center w-20 h-20 text-4xl border border-black rounded-full dark:border-white">
-                <p>{{ acronym(member.email) }}</p>
+  <div>
+    <div class="h-full p-8 overflow-hidden max-h-fit grow md:pb-0">
+      <div class="flex justify-between w-full">
+        <h2 class="mb-5 text-2xl font-bold text-slate-800 dark:text-white">
+          {{ t('members') }}
+        </h2>
+        <button type="button" class="btn btn-outline btn-secondary" @click="showInviteModal">
+          <Plus />
+          <p class="hidden ml-2 md:block">
+            {{ t('add-member') }}
+          </p>
+        </button>
+      </div>
+      <div class="flex flex-col overflow-y-auto md:mx-auto md:mt-5 md:w-full ">
+        <dl id="members-div" class="divide-y dark:divide-slate-500 divide-slate-200">
+          <div v-for="member in members" :key="member.id">
+            <div id="member-card" class="flex justify-between my-2 ml-2 md:my-6">
+              <div class="hidden md:flex">
+                <img
+                  v-if="member?.image_url" class="object-cover w-20 h-20 mask mask-squircle" :src="member.image_url"
+                  width="80" height="80" alt="profile"
+                >
+                <div v-else class="flex items-center justify-center w-20 h-20 text-4xl border rounded-full border-slate-900 dark:border-slate-500">
+                  <p>{{ acronym(member.email) }}</p>
+                </div>
+              </div>
+              <div id="user-email" class="mt-auto mb-auto text-center ml-1/3 mr-1/3">
+                {{ `${member.email} (${member.role.replaceAll('_', ' ')})` }}
+              </div>
+              <div class="mt-auto mb-auto mr-4">
+                <button id="wrench-button" class="ml-4 bg-transparent w-7 h-7" :class="{ visible: canEdit(member), invisible: !canEdit(member) }" @click="changeMemberPermission(member)">
+                  <Wrench class="mr-4 text-lg text-[#397cea]" />
+                </button>
+                <button id="trash-button" class="ml-4 bg-transparent w-7 h-7" :class="{ visible: canDelete(member), invisible: !canDelete(member) }" @click="deleteMember(member)">
+                  <Trash class="mr-4 text-lg text-red-600" />
+                </button>
               </div>
             </div>
-            <div id="user-email" class="mt-auto mb-auto text-center ml-1/3 mr-1/3">
-              {{ `${member.email} (${member.role.replaceAll('_', ' ')})` }}
-            </div>
-            <div class="mt-auto mb-auto mr-4">
-              <button id="wrench-button" class="ml-4 bg-transparent w-7 h-7" :class="{ visible: canEdit(member), invisible: !canEdit(member) }" @click="changeMemberPermission(member)">
-                <Wrench class="mr-4 text-lg text-[#397cea]" />
-              </button>
-              <button id="trash-button" class="ml-4 bg-transparent w-7 h-7" :class="{ visible: canDelete(member), invisible: !canDelete(member) }" @click="deleteMember(member)">
-                <Trash class="mr-4 text-lg text-red-600" />
-              </button>
-            </div>
           </div>
-        </div>
-      </dl>
+        </dl>
+      </div>
     </div>
   </div>
 </template>

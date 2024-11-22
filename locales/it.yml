@@ -8,6 +8,7 @@ Storage: Magazzinaggio
 ab-testing-progressive-deploy-conflict: >-
   Il test AB e la distribuzione progressiva non possono essere abilitati
   contemporaneamente
+account: account
 account-error: Errore durante l'aggiornamento del tuo account
 account-id: Account ID
 account-password-error: Si è verificato un errore, riprova
@@ -29,6 +30,7 @@ add-another-app: Aggiungi la tua app
 add-api-key: Aggiunta con successo una nuova chiave API
 add-member: Aggiungi membro
 add-your-first-app-t: Aggiungi la tua prima app al tuo account e inviamo gli aggiornamenti!
+admin: amministratore
 alert-2fa-disable: Conferma di voler disattivare 2FA
 alert-accept-inviation: Accetti l'invito a %ORG%?
 alert-add-new-key: Seleziona il nuovo tipo di chiave API
@@ -45,7 +47,7 @@ alert-not-reverse-message: Questa azione non è reversibile
 alert-regenerate-key: Sei sicuro di voler rigenerare questa chiave?
 alert-unknown-error: Errore sconosciuto, vedere console di sviluppo
 allow-develoment-bui: Consenti build di sviluppo
-allow-device-to-self: Consenti ai dispositivi di associarsi automaticamente
+allow-device-to-self: Permetti ai dispositivi di dissociarsi/associarsi autonomamente
 allow-emulator: Consenti emulatori
 already-account: Hai già un account?
 api-doc: Documento API
@@ -59,6 +61,7 @@ app-logo-deleted: Immagine dell'app eliminata correttamente
 app-name: Nome dell'applicazione
 app-perm: Autorizzazione dell'app
 are-u-sure: Sei sicuro ?
+are-you-sure-you-want-to-download: Siete sicuri di voler scaricare?
 available-in-the-san: Disponibile nell'app sandbox
 back-to-login-page: Torna alla pagina di accesso
 bandwith-usage: 'Utilizzo della larghezza di banda:'
@@ -67,6 +70,7 @@ best-plan: Miglior piano
 bigger-app-size: Dimensioni dell'app maggiori
 billed-annually-at: Fatturato annualmente a
 billed-monthly-at: Fatturato mensilmente a
+billing: fatturazione
 bulk-upload: Caricamento collettivo
 bundle: Fascio
 bundle-deleted: Pacchetto eliminato
@@ -89,9 +93,19 @@ canceled-delete: >-
   Eliminazione del pacchetto annullata, impossibile eliminare un pacchetto
   collegato
 canceled-photo-selection: Hai annullato la selezione dell'immagine
+cannot-change-default-upload-channel: >-
+  Impossibile modificare il canale di caricamento predefinito, controllare la
+  console del browser
 cannot-change-name: Impossibile modificare il nome, controlla la console del browser
 cannot-change-permission: Impossibile modificare le autorizzazioni, controlla la console del browser
+cannot-change-retention: Impossibile modificare la conservazione, controllare la console del browser
+cannot-copy: Non è possibile copiare negli appunti, si prega di copiare da soli dal modal.
+cannot-copy-key: >-
+  Non è possibile copiare la chiave nella tua clipboard, per favore copiala tu
+  stesso.
+cannot-create-empty-device: Impossibile creare un dispositivo vuoto. Controllare la console del browser
 cannot-create-org: Impossibile creare un'organizzazione, controlla i log del browser!
+cannot-create-overwrite: Impossibile creare una sovrascrittura. Controllare la console del browser
 cannot-del-org: Impossibile eliminare l'organizzazione, controlla il registro del browser
 cannot-delete-app: Impossibile eliminare l'app
 cannot-delete-app-icon: Impossibile eliminare l'icona dell'app
@@ -99,6 +113,8 @@ cannot-delete-bundle: Impossibile eliminare il gruppo
 cannot-delete-channel: Impossibile eliminare il canale
 cannot-delete-member: Impossibile eliminare il membro, controlla la console del browser
 cannot-delete-owner: Impossibile eliminare il proprietario dall'organizzazione
+cannot-determine-platform: Impossibile determinare se l'UUID dato appartiene a IOS o Android
+cannot-fetch-channels: Impossibile recuperare i canali. Controllare la console del browser
 cannot-find-unknown-version: >-
   Impossibile trovare la versione sconosciuta, contattare l'assistenza capgo e
   controllare i registri del browser
@@ -111,17 +127,20 @@ cannot-test-app-some: Impossibile testare l'app, è successo qualcosa di sbaglia
 cannot-view-plans: Impossibile visualizzare la pagina dei piani
 cannot-view-usage: Impossibile visualizzare la pagina di utilizzo
 cannots-sign-off: Impossibile accedere
+captcha: Captcha
+captcha-fail: Convalida Captcha fallita
 change: Modifica
 change-api-key-name: Cambia il nome dell'apikey
 change-your-picture: Cambia la tua immagine
 changed-app-name: Nome dell'app modificato correttamente
+changed-app-retention: Modificata con successo la ritenzione dell'app
 changed-name: Nome di apikey modificato con successo
 changed-password-suc: password cambiata con successo
 channel: Canale
 channel-ab-testing: Abilita test AB
 channel-ab-testing-percentage: Percentuale di utenti che hanno ricevuto la versione secondaria
 channel-bundle-linked: |-
-  Questo pacchetto è collegato a uno o più canali. 
+  Questo pacchetto è collegato a uno o più canali.
   (%) Desideri scollegarlo da questi canali?
 channel-create: Crea canale
 channel-deleted: Canale eliminato
@@ -143,11 +162,19 @@ confirm-email: conferma la tua email
 confirm-email-sent: >-
   Se envió un correo electrónico de confirmación, haz clic en el enlace para
   confirmar tu correo electrónico.
+confirm-overwrite: Confermare la sovrascrittura
+confirm-overwrite-msg: |-
+  Si sta per creare la seguente sovrascrittura:
+
+  ID dispositivo: $1
+  Canale: $2
+  Versione del canale: $3
+
+  Vi sembra corretto?
 confirm-password: Conferma password
 confirm-public-desc: >-
   Impostando questo canale come predefinito, invierà aggiornamenti a tutti i
   tuoi utenti.
-
 
   Altri canali predefiniti non saranno più predefiniti.
 continue: Continua
@@ -161,6 +188,8 @@ created-at: Creato a
 custom: Costume
 custom-domain: Dominio personalizzato
 custom-id: ID personalizzato
+dashboard: pannello di controllo
+default-upload-channel: Canale di caricamento predefinito
 defined-as-private: definita normale
 defined-as-public: definito come predefinito
 delete: Eliminare
@@ -175,6 +204,12 @@ detailed-usage-plan: Utilizzo dettagliato
 devDependencies: {}
 device: Dispositivo
 device-id: ID del dispositivo
+device-injected: >-
+  Questo dispositivo è stato creato manualmente per aggiungere una
+  sovrascrittura.
+device-injected-2: >-
+  Alcuni valori sono segnaposto e verranno aggiornati dopo il primo
+  aggiornamento del dispositivo.
 devices: Dispositivi
 did-not-recive-confirm-email: ¿No recibiste el correo electrónico de confirmación?
 disable: disattivare
@@ -182,8 +217,10 @@ disable-ab-testing: Test AB disabilitato
 disable-auto-downgra: Disabilita il downgrade automatico in modalità nativa
 disable-progressive-deploy: Distribuzione progressiva disabilitata
 disableAutoUpdateToMajor: Disabilita l'aggiornamento automatico
+discord: discordia
 discover-module-in-a: Scopri il modulo in Awesome-condensatore
 discover-your-dashbo: Scopri la tua dashboard!
+documentation: documentazione
 dont-have-an-account: Non hai un account?
 download: Scaricamento
 email: E-mail
@@ -204,15 +241,19 @@ fast-forward: Avanti veloce
 first-name: Nome di battesimo
 force-version: Versione forzata
 force-version-change: Salta la distribuzione progressiva
+forced-devices-not-found: Questo canale non ha dispositivi forzati
 forgot: Dimenticato
 forgot-check-email: Controlla la tua email per ottenere il link per reimpostare la password
 forgot-success: Password aggiornata con successo
 free-trial: Prova gratuita
 from-device: dal dispositivo
 general-information: Informazioni generali
+generate-device-overwrite: Generare la sovrascrittura del dispositivo
+generate-device-overwrite-msg: Si sta per generare una sovrascrittura del dispositivo. Volete continuare?
 generated-new-apikey: Generata nuova chiave API!
 go-back: Torna indietro
 good: Bene
+here: qui
 id: ID
 included-in-plan: Incluso nel piano
 info: Informazione
@@ -222,6 +263,7 @@ install: Installato
 invalid-auth: I tuoi dati di accesso non corrispondono, riprova.
 invalid-email: L'email passata non è valida
 invalid-mfa-code: Codice 2FA non valido
+invalid-uuid: UUID non valido
 invalid-version: Versione del semestre non valida
 invite-accepted: Invito di organizzazione accettato con successo
 is-emulator: È emulatore
@@ -238,6 +280,7 @@ last-15-minutes: Ultimi 15 minuti
 last-3-minutes: Ultimi 3 minuti
 last-minute: Ultimo minuto
 last-name: Cognome
+last-run: Ultimo aggiornamento
 last-update: Ultimo aggiornamento
 last-upload: Ultimo caricamento
 last-version: Ultima versione
@@ -245,8 +288,10 @@ latest_version: Ultimo pacchetto
 launch-bundle: Pacchetto di lancio
 leaving: In partenza
 live-reload: Ricarica dal vivo
+log-as: Inizia lo spoofing
 log-in: Login
 login-to-your-accoun: Accedi al tuo account
+logout: disconnetti
 logs: Registri
 main-bundle-number: Numero del pacchetto principale
 major: Maggiore
@@ -272,7 +317,7 @@ min-update-version: Versione di aggiornamento minima
 minor: Minore
 misconfigured: Non configurato correttamente
 misconfigured-channels: |-
-  Alcuni canali sono configurati in modo errato. 
+  Alcuni canali sono configurati in modo errato.
   Gli aggiornamenti falliranno per quei canali!
 missing-email: E-mail mancante
 missing-name: Nome mancante
@@ -286,25 +331,31 @@ more-version-storage: Più versione Archiviazione
 my-notifications: Le mie notifiche
 name: Nome
 need-more-contact-us: |-
-  Bisogno di piu ? 
+  Bisogno di piu ?
   Contattaci per un piano su misura
 new-name-not-changed: Il nuovo nome è lo stesso di quello vecchio
 new-name-to-long: |-
-  Il nuovo nome è troppo lungo. 
+  Il nuovo nome è troppo lungo.
   Puoi utilizzare solo 32 caratteri
 new-name-to-short: |-
-  Il nome apikey è troppo corto. 
+  Il nome apikey è troppo corto.
   Deve contenere almeno 4 caratteri
 next: Prossimo
+next-run: Prossimo aggiornamento
 'no': 'NO'
 no-app-icon: Questa app non ha alcuna icona dell'app
 no-data: Nessun dato
 no-permission: Permessi insufficienti
+no-permission-ask-super-admin: >-
+  Autorizzazione insufficiente, chiedere a un super amministratore di eliminare
+  questo bundle in modo non sicuro.
 none: Nessuno
+normal: Normale
 not-found: Non trovato
 not-paying-org-usage: >-
   Questa organizzazione non paga, non può mostrare l'utilizzo per
   un'organizzazione a pagamento gratuita
+notifications: notifiche
 ok: OK
 old-onboarding-mode: vecchio onboarding
 one-day-left: Manca un giorno
@@ -334,19 +385,27 @@ password-hint: >-
 patch: Toppa
 percent-fail: Percentuale di fallimento
 permission-changed: Autorizzazione utente modificata correttamente
+pernament: Pernamento
 personal-information: Informazioni personali
 picture-delete-fail: Impossibile eliminare l'immagine dell'app, controlla il registro della console
 picture-uploaded: Immagine caricata correttamente
 plan-bandwidth: Larghezza di banda GB
 plan-desc: Inizia a creare gratuitamente, quindi aggiungi un piano per la pubblicazione.
+plan-failed: Piano fallito, verificare i dati della carta
+plan-free: Ideale per MVP e test
 plan-inactive: Piano inattivo
+plan-maker: Il meglio per i proprietari di piccole imprese
 plan-page-warn: L'acquisto di un piano non influirà sulle organizzazioni a cui sei invitato.
 plan-page-warn-2: Scopri di più a riguardo.
+plan-payasyougo: Ideale per le imprese in espansione
 plan-pricing-plans: Piani tariffari
+plan-solo: Meglio per gli indipendenti
 plan-storage: Archiviazione GB
+plan-team: Il meglio per i grandi imprenditori
 plan-updates: Aggiornamenti
 plan-upgrade: Sottoscrizioni
 plan-whats-included: Cosa è incluso
+plans: piani
 plans-super-only: Solo i super amministratori possono visualizzare i piani e la fatturazione
 platform: piattaforma
 please-ask-the-user-to-create-account-first: Chiedi prima all'utente di creare un account
@@ -358,6 +417,7 @@ preview: Pacchetto di anteprima
 preview-short: anteprima
 previous: Precedente
 price-per-unit-above: Prezzo per unità sopra il piano
+priority-support: Supporto prioritario per tutti i plugin Capgo +30
 pro-tip-you-can-copy: 'Suggerimento pro: puoi copiare il file'
 progressive-bundle-number: Numero progressivo del fascio
 progressive-deploy-option: Seleziona l'opzione di distribuzione progressiva
@@ -373,9 +433,12 @@ removed-apikey: La chiave API è stata eliminata con successo
 resend: >-
   I am sorry, but it seems like you've missed mentioning the language you want
   me to translate "Resend" into. Could you please clarify?
+resend-confirm: Reinvia email di conferma
 resend-email: Reenviar correo electrónico de confirmación
 reset-password: Resetta la password
+reset-spoofed-user: Smetti di falsificare
 reset-your-password: reimposta la tua password
+retention: Elimina automaticamente i pacchetti non utilizzati (dopo x secondi)
 save: Salva
 save-changes: Salvare le modifiche
 search-bundle-id: Cerca per ID pacchetto
@@ -384,6 +447,15 @@ search-by-device-id-: Cerca per ID dispositivo o azione
 search-by-device-id-0: Cerca per ID dispositivo
 search-by-name: Ricerca per nome
 see-usage: Vedi utilizzo
+select-channel: Selezionare il canale
+select-channel-msg: Selezionare il canale che si desidera utilizzare per la sovrascrittura.
+select-default-upload-channel: Selezionare il canale di caricamento predefinito
+select-default-upload-channel-header: Selezionare il canale predefinito
+select-style-of-deletion: Selezionare lo stile di cancellazione
+select-style-of-deletion-msg: |-
+  Selezionare il modo in cui si desidera eliminare questo canale.
+  Si consiglia di scegliere la modalità normale.
+  Potete leggere la differenza $1
 select-user-perms: Seleziona le autorizzazioni dell'utente
 select-user-perms-expanded: Seleziona quale autorizzazione dovrebbe avere l'utente invitato
 session_key: IvSessionKey
@@ -394,7 +466,7 @@ sign-out: Disconnessione
 size: Misurare
 size-not-found: Non trovato
 something-went-wrong-try-again-later: |-
-  Qualcosa è andato storto! 
+  Qualcosa è andato storto!
   Riprovare più tardi.
 special-api-access: Accesso API speciale
 start-new-deploy: Avvia una nuova distribuzione progressiva
@@ -409,14 +481,19 @@ terms-of-use: Termini di utilizzo
 tests: test
 thank-you-for-choosi: Grazie per aver scelto Capgo!
 thank-you-for-sub: Grazie per esserti iscritto a Capgo
-this-page-will-self-: Questa pagina si aggiornerà automaticamente
+this-page-will-self-: >-
+  Questa pagina si aggiornerà automaticamente una volta terminato l'onboarding
+  con la CLI
 to: A
 to-open-encrypted-bu: 'Per aprire il pacchetto crittografato utilizzare il comando:'
 top-apps-v2: App
 trial-left: giorni rimasti
 trial-plan-expired: Prova scaduta
+type-device-id: Immettere l'ID del dispositivo
+type-device-id-msg: Immettere l'ID del dispositivo che si desidera sovrascrivere.
 type-new-name: Digita il nuovo nome della chiave API
 type-new-org-name: Digita il nuovo nome per l'organizzazione
+undefined: Non definito
 undefined-fail: Non definito (gli aggiornamenti falliranno)
 uninstall: Disinstallato
 unknown: sconosciuto
@@ -426,8 +503,10 @@ unlink-bundle: Scollega gruppo
 unlink-channel: Scollega canale
 unlink-error: Errore di scollegamento, controlla la console
 unlink-version: Scollega versione
+unsafe: Non sicuro
 update: Aggiornamento
 updated-at: Aggiornato a
+updated-default-upload-channel: Aggiornato il canale di caricamento predefinito
 updated-min-version: Versione minima aggiornata
 upgrade: Aggiornamento
 upload-img-error: Impossibile caricare l'immagine, controlla la console
@@ -454,11 +533,12 @@ what-to-do-with-photo: Modifica immagine
 what-to-do-with-photo-dec: Cosa vorresti fare con la foto dell'app?
 write-key: Scrivere
 wrong-name-org-del: |-
-  Non hai digitato il nome dell'organizzazione. 
+  Non hai digitato il nome dell'organizzazione.
   Avresti dovuto digitare: %1
 yearly: Annuale
 'yes': SÌ
 you-can-change-your-: Puoi modificare le tue informazioni personali qui.
+you-cannot-reuse: Non è possibile riutilizzare questa versione del bundle dopo l'eliminazione
 you-reached-the-limi: Limite raggiunto
 your-settings: Le tue impostazioni
 your-ussage: 'Il tuo utilizzo:'

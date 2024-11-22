@@ -1,6 +1,8 @@
 import { sentry } from '@hono/sentry'
+import { logger } from 'hono/logger'
+import { requestId } from 'hono/request-id'
 import { Hono } from 'hono/tiny'
-import { app } from '../_backend/public/devices.ts'
+import { app } from '../_backend/public/device/index.ts'
 
 const functionName = 'device'
 const appGlobal = new Hono().basePath(`/${functionName}`)
@@ -12,6 +14,8 @@ if (sentryDsn) {
   }))
 }
 
+appGlobal.use('*', logger())
+appGlobal.use('*', requestId())
 appGlobal.route('/', app)
 
 Deno.serve(appGlobal.fetch)

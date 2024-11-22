@@ -1,26 +1,35 @@
 <script setup lang="ts">
-import { ref, shallowRef, watch, watchEffect } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { Capacitor } from '@capacitor/core'
-import { useRouter } from 'vue-router'
-import { useDisplayStore } from '~/stores/display'
-import IconAcount from '~icons/mdi/user'
-import IconPassword from '~icons/mdi/password'
 import IconPlans from '~icons/material-symbols/price-change'
-import IconBilling from '~icons/mingcute/bill-fill'
 import IconNotification from '~icons/mdi/message-notification'
-import IconAdmin from '~icons/eos-icons/admin'
+import IconPassword from '~icons/mdi/password'
+import IconAcount from '~icons/mdi/user'
+import IconBilling from '~icons/mingcute/bill-fill'
+import { useI18n } from 'petite-vue-i18n'
+import { ref, shallowRef, watch, watchEffect } from 'vue'
+import { useRouter } from 'vue-router'
 import type { Tab } from '~/components/comp_def'
-import { useMainStore } from '~/stores/main'
-import { useOrganizationStore } from '~/stores/organization'
 import { openPortal } from '~/services/stripe'
-import { isSpoofed } from '~/services/supabase'
+import { useDisplayStore } from '~/stores/display'
+import { useOrganizationStore } from '~/stores/organization'
 
 const { t } = useI18n()
-const main = useMainStore()
 const displayStore = useDisplayStore()
 const organizationStore = useOrganizationStore()
-const ActiveTab = ref('/dashboard/settings/account')
+const router = useRouter()
+function getCurrentTab() {
+  // look the path and set the active tab
+  const path = router.currentRoute.value.path
+  if (path.includes('/dashboard/settings/account'))
+    return '/dashboard/settings/account'
+  else if (path.includes('/dashboard/settings/organization'))
+    return '/dashboard/settings/organization'
+  else if (path.includes('/dashboard/settings/organization/plans'))
+    return '/dashboard/settings/organization/plans'
+  return '/dashboard/settings/account'
+}
+
+const ActiveTab = ref(getCurrentTab())
 
 const tabs = ref<Tab[]>([
   {
@@ -53,7 +62,6 @@ const organizationTabs = ref<Tab[]>([
   },
 ])
 
-const router = useRouter()
 const type = ref<'user' | 'organization'>(router.currentRoute.value.path.includes('organization') ? 'organization' : 'user')
 
 watch(type, (val) => {
@@ -74,7 +82,7 @@ watchEffect(() => {
       {
         label: 'plans',
         icon: shallowRef(IconPlans),
-        key: '/dashboard/settings/plans',
+        key: '/dashboard/settings/organization/plans',
       },
     )
   }
@@ -94,42 +102,7 @@ watchEffect(() => {
   else if (!organizationStore.hasPermisisonsInRole(organizationStore.currentRole, ['super_admin'])) {
     organizationTabs.value = organizationTabs.value.filter(tab => tab.label !== 'billing')
   }
-  // if (!Capacitor.isNativePlatform()
-  //   && organizationStore.hasPermisisonsInRole(organizationStore.currentRole, ['super_admin'])
-  //   && !organizationTabs.value.find(tab => tab.label === 'invoices')) {
-  //     organizationTabs.value.push(
-  //     {
-  //       label: 'invoices',
-  //       icon: shallowRef(MdiInvoiceListOutline),
-  //       key: '/invoices',
-  //       onClick: async() => {
-  //         // post on that and display a popup to say check your mailbox
-  //         // https://zenvoice.io/api/invoices/send?userId=65e615635afbec6a6d29f6df&email=paul@kick.com
-  //         if (!main.user?.email) return
-  //         ky.get(`https://zenvoice.io/api/invoices/send?userId=65e615635afbec6a6d29f6df&email=${main.user?.email}`, {
-  //           // searchParams: {
-  //           //   userId: '5e615635afbec6a6d29f6df',
-  //           //   email: main.user?.email
-  //           // }
-  //         })
-  //         .then(()=> {
-  //           // check your mailbox toast
-  //           toast.info('Check your email to access to the link')
-  //         })
-  //         .catch(() => {
-  //           toast.error('Cannot find any invoices')
-  //         })
 
-  //         // openBlank(`https://zenvoice.io/p/65e615635afbec6a6d29f6df?email=${main.user?.email}`) old code
-  //       }
-  //     },
-  //   )
-  // }
-  // else {
-  //   organizationTabs.value = organizationTabs.value.filter(tab => tab.label !== 'invoices')
-  // }
-
-  // TODO: reenable after we fix usage
   if (organizationStore.currentOrganization?.paying
     && organizationStore.hasPermisisonsInRole(organizationStore.currentRole, ['super_admin'])
     && (!organizationTabs.value.find(tab => tab.label === 'usage'))) {
@@ -142,16 +115,6 @@ watchEffect(() => {
   }
   else if (organizationTabs.value.find(tab => tab.label === 'usage')) {
     organizationTabs.value = organizationTabs.value.filter(tab => tab.label !== 'usage')
-  }
-  if ((main.isAdmin || isSpoofed()) && !tabs.value.find(tab => tab.label === 'admin')) {
-    tabs.value.push({
-      label: 'admin',
-      icon: shallowRef(IconAdmin) as any,
-      key: '/dashboard/settings/admin',
-    })
-  }
-  else if (!main.isAdmin && tabs.value.find(tab => tab.label === 'admin')) {
-    tabs.value = tabs.value.filter(tab => tab.label !== 'admin')
   }
 })
 
@@ -168,20 +131,20 @@ displayStore.NavTitle = t('settings')
 
 <template>
   <div class="flex flex-col flex-1 h-full overflow-hidden">
-    <div class="text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:text-gray-400 dark:border-gray-700">
+    <div class="text-center text-gray-500 bg-gray-200 dark:bg-gray-800 dark:text-gray-400">
       <ul class="flex flex-wrap -mb-px">
         <li class="mr-2">
           <a
-            class="inline-block p-4 border-b-2 rounded-t-lg cursor-pointer"
-            :class="type === 'user' ? 'text-blue-600 border-blue-600 active dark:text-blue-500 dark:border-blue-500' : 'dark:hover:text-gray-300'"
+            class="inline-block p-4 rounded-t-lg cursor-pointer"
+            :class="{ 'border-b-2 text-blue-600 border-blue-600 active dark:text-blue-500 dark:border-blue-500': type === 'user', 'dark:hover:text-gray-300': type !== 'user' }"
             aria-current="page"
             @click="gotoMainSettings"
           >{{ t('your-settings') }}</a>
         </li>
         <li class="mr-2">
           <a
-            class="inline-block p-4 border-b-2 rounded-t-lg cursor-pointer"
-            :class="type === 'organization' ? 'text-blue-600 border-blue-600 active dark:text-blue-500 dark:border-blue-500' : 'dark:hover:text-gray-300'"
+            class="inline-block p-4 rounded-t-lg cursor-pointer"
+            :class="{ 'border-b-2 text-blue-600 border-blue-600 active dark:text-blue-500 dark:border-blue-500': type === 'organization', 'dark:hover:text-gray-300': type !== 'organization' }"
             aria-current="page"
             @click="gotoOrgSettings"
           >{{ t('organization-settings') }} </a>
@@ -191,7 +154,7 @@ displayStore.NavTitle = t('settings')
     <main class="w-full h-full overflow-hidden">
       <TabSidebar v-model:active-tab="ActiveTab" :tabs="type === 'user' ? tabs : organizationTabs" class="w-full h-full mx-auto md:px-4 md:py-8 lg:px-8 max-w-9xl">
         <template #default>
-          <RouterView class="h-full overflow-y-auto" />
+          <RouterView class="h-full overflow-y-auto grow" />
         </template>
       </TabSidebar>
     </main>

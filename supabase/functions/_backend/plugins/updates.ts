@@ -1,13 +1,16 @@
-import { Hono } from 'hono/tiny'
 import type { Context } from '@hono/hono'
-import * as semver from 'semver'
+import type { AppInfos } from '../utils/types.ts'
+import { canParse } from '@std/semver'
+import { Hono } from 'hono/tiny'
 import { z } from 'zod'
 import { update } from '../utils/update.ts'
 import {
+  deviceIdRegex,
   INVALID_STRING_APP_ID,
   INVALID_STRING_DEVICE_ID,
   INVALID_STRING_PLATFORM,
   INVALID_STRING_PLUGIN_VERSION,
+  isLimited,
   MISSING_STRING_APP_ID,
   MISSING_STRING_DEVICE_ID,
   MISSING_STRING_PLATFORM,
@@ -18,11 +21,8 @@ import {
   NON_STRING_DEVICE_ID,
   NON_STRING_VERSION_BUILD,
   NON_STRING_VERSION_NAME,
-  deviceIdRegex,
-  isLimited,
   reverseDomainRegex,
 } from '../utils/utils.ts'
-import type { AppInfos } from '../utils/types.ts'
 
 const jsonRequestSchema = z.object({
   app_id: z.string({
@@ -55,7 +55,7 @@ const jsonRequestSchema = z.object({
   plugin_version: z.string({
     required_error: MISSING_STRING_PLUGIN_VERSION,
     invalid_type_error: INVALID_STRING_PLUGIN_VERSION,
-  }).refine(version => semver.valid(version) !== null, {
+  }).refine(version => canParse(version), {
     message: INVALID_STRING_PLUGIN_VERSION,
   }),
 }).refine(data => reverseDomainRegex.test(data.app_id), {
@@ -71,7 +71,7 @@ export const app = new Hono()
 app.post('/', async (c: Context) => {
   try {
     const body = await c.req.json<AppInfos>()
-    console.log('body', body)
+    console.log({ requestId: c.get('requestId'), context: 'post updates body', body })
     if (isLimited(c, body.app_id)) {
       return c.json({
         status: 'Too many requests',
@@ -81,7 +81,7 @@ app.post('/', async (c: Context) => {
     const parseResult = jsonRequestSchema.safeParse(body)
     if (!parseResult.success) {
       const error = parseResult.error.errors[0]
-      console.log('parseResult', error.message)
+      console.log({ requestId: c.get('requestId'), context: 'parseResult', error: error.message })
       return c.json({
         error: `Cannot parse json: ${error.message}`,
       }, 400)
@@ -90,7 +90,11 @@ app.post('/', async (c: Context) => {
     return update(c, body)
   }
   catch (e) {
-    console.log('error', JSON.stringify(e))
+    console.log({ requestId: c.get('requestId'), context: 'error', error: JSON.stringify(e) })
     return c.json({ status: 'Cannot get updates', error: JSON.stringify(e) }, 400)
   }
+})
+
+app.get('/', (c: Context) => {
+  return c.json({ status: 'ok' })
 })

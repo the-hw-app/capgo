@@ -1,9 +1,9 @@
-import { Hono } from 'hono/tiny'
 import type { Context } from '@hono/hono'
-import { BRES, middlewareAPISecret } from '../utils/hono.ts'
-import { supabaseAdmin } from '../utils/supabase.ts'
-import { s3 } from '../utils/s3.ts'
 import type { Database } from '../utils/supabase.types.ts'
+import { Hono } from 'hono/tiny'
+import { BRES, middlewareAPISecret } from '../utils/hono.ts'
+import { getPath, s3 } from '../utils/s3.ts'
+import { supabaseAdmin } from '../utils/supabase.ts'
 
 export const app = new Hono()
 
@@ -16,7 +16,7 @@ app.post('/', middlewareAPISecret, async (c: Context) => {
   try {
     // unsafe parse the body
     const body = await c.req.json<{ version: Database['public']['Tables']['app_versions']['Row'] }>()
-    console.log('body cron_clear_versions', body)
+    console.log({ requestId: c.get('requestId'), context: 'post body cron_clear_versions', body })
 
     // Let's start with the metadata
     const supabase = supabaseAdmin(c)
@@ -35,13 +35,19 @@ app.post('/', middlewareAPISecret, async (c: Context) => {
         return errorOut(c, `Cannot find user_id for app_id ${version.app_id} because of no app found`)
       version.user_id = app.user_id
     }
-    const v2Path = version.bucket_id ? `apps/${version.user_id}/${version.app_id}/versions/${version.bucket_id}` : version.r2_path
-    console.log('v2Path', v2Path)
+    const v2Path = await getPath(c, version)
+    console.log({ requestId: c.get('requestId'), context: 'v2Path', v2Path })
+    if (!v2Path) {
+      await supabase.from('app_versions')
+        .delete()
+        .eq('id', version.id)
+      return c.json(BRES)
+    }
     let notFound = false
     try {
-      const size = await s3.getSize(c, v2Path ?? '')
+      const size = await s3.getSize(c, v2Path)
       if (!size) {
-        console.log(`No size for ${v2Path}, ${size}`)
+        console.log({ requestId: c.get('requestId'), context: `No size for ${v2Path}, ${size}` })
         // throw error to trigger the deletion
         notFound = true
         throw new Error('no_size')
@@ -58,10 +64,10 @@ app.post('/', middlewareAPISecret, async (c: Context) => {
         return errorOut(c, `Cannot find checksum for app_versions id ${version.id} because of no app_versions found`)
       const checksum = appVersion.checksum
       if (!checksum) {
-        console.log(`No checksum for ${v2Path}, ${checksum}`)
+        console.log({ requestId: c.get('requestId'), context: `No checksum for ${v2Path}, ${checksum}` })
       }
 
-      console.log(`Upsert app_versions_meta (version id: ${version.id}) to: ${size}`)
+      console.log({ requestId: c.get('requestId'), context: `Upsert app_versions_meta (version id: ${version.id}) to: ${size}` })
 
       await supabase.from('app_versions_meta')
         .upsert({
@@ -73,11 +79,11 @@ app.post('/', middlewareAPISecret, async (c: Context) => {
         })
     }
     catch (errorSize) {
-      console.error('errorSize', notFound, v2Path, errorSize)
+      console.error({ requestId: c.get('requestId'), context: 'errorSize', notFound, v2Path, error: errorSize })
       // Ensure that the version is not linked anywhere
       const { count, error, data } = await supabase.from('channels')
         .select('id', { count: 'exact' })
-        .or(`version.eq.${version.id},secondVersion.eq.${version.id}`)
+        .or(`version.eq.${version.id},second_version.eq.${version.id}`)
 
       if (error)
         return errorOut(c, `Cannot check channel count for ${version.id} because of error: ${error}`)
@@ -96,8 +102,8 @@ app.post('/', middlewareAPISecret, async (c: Context) => {
           if (!unknowVersion)
             return errorOut(c, `Cannot find unknow version for app_id ${version.app_id} because of no unknow version found`)
           await supabase.from('channels')
-            .update({ version: unknowVersion.id, secondVersion: null })
-            .or(`version.eq.${version.id},secondVersion.eq.${version.id}`)
+            .update({ version: unknowVersion.id, second_version: null })
+            .or(`version.eq.${version.id},second_version.eq.${version.id}`)
         }
         else {
           return errorOut(c, `cannot delete failed version ${version.id}, linked in some channels (${data.map(d => d.id).join(', ')})`)

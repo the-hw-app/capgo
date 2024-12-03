@@ -269,6 +269,13 @@ async function put(c: Context, body: DeviceLink): Promise<Response> {
     .limit(1)
     .single()
 
+  const { data: deviceInfo } = await supabaseAdmin(c)
+    .from('devices')
+    .select('device_id, custom_id')
+    .eq('device_id', device_id)
+    .single()
+  console.log("🚀 ~ post ~ deviceInfo:", deviceInfo)
+
   if (!version) {
     console.error('Cannot find version', { version_name })
     return c.json({

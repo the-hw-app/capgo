@@ -7,6 +7,7 @@ import { getEnv } from './utils.ts'
 import type { Person, Segments } from './plunk.ts'
 import { addDataContact } from './plunk.ts'
 import type { Order } from './types.ts'
+import { sendMixpanelStudentEvent } from './mixpanel.ts'
 
 const DEFAULT_LIMIT = 1000
 // Import Supabase client
@@ -584,6 +585,7 @@ export function trackDevicesSB(c: Context, app_id: string, device_id: string, ve
 }
 
 export function trackLogsSB(c: Context, app_id: string, device_id: string, action: Database['public']['Enums']['stats_action'], version_id: number) {
+  sendMixpanelStudentEvent(c, `capgo_${action}`, { device_id, app_id, version_id })
   return supabaseAdmin(c)
     .from('stats')
     .insert(

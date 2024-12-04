@@ -10,7 +10,7 @@ export const sendMixpanelStudentEvent = async (
     event_name: string,
     params: any = {},
 ) => {
-    console.log("🚀 ~ params:", params)
+    console.log("🚀 ~ params:", params, params.device_id)
 
     if (!params.device_id) return;
     const { data: deviceInfo } = await supabaseAdmin(context)
@@ -19,7 +19,7 @@ export const sendMixpanelStudentEvent = async (
         .eq('device_id', params.device_id)
         .single()
 
-    console.log("🚀 ~ deviceInfo:", deviceInfo)
+    console.log("🚀 ~ deviceInfo:", deviceInfo, deviceInfo?.custom_id)
 
     if (!deviceInfo?.custom_id) return;
     const eventBody = {
@@ -29,6 +29,7 @@ export const sendMixpanelStudentEvent = async (
         triggered_via: "capgo_backend",
     };
 
+    console.log("🚀 ~ params.version_id:", params.version_id)
     if (params.version_id) {
         const { data: versionInfo } = await supabaseAdmin(context)
             .from('app_versions')
@@ -38,8 +39,10 @@ export const sendMixpanelStudentEvent = async (
 
         eventBody['version_name'] = versionInfo?.name
     }
+    console.log("🚀 ~ eventBody['version_name']:", eventBody['version_name'])
 
     const camelToSnakeCase = (str: any) => str.replace(/[A-Z]/g, (letter: any) => `_${letter.toLowerCase()}`);
     console.log("🚀 ~ eventBody:", camelToSnakeCase(event_name), eventBody)
     mixpanel.track(camelToSnakeCase(event_name), eventBody);
+    console.log("🚀 ~ track:")
 };

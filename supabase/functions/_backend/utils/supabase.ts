@@ -586,6 +586,10 @@ export function trackDevicesSB(c: Context, app_id: string, device_id: string, ve
 
 export function trackLogsSB(c: Context, app_id: string, device_id: string, action: Database['public']['Enums']['stats_action'], version_id: number) {
   sendMixpanelStudentEvent(c, `capgo_${action}`, { device_id, app_id, version_id })
+  .catch(e => {
+    console.log("🚀 ~ trackLogsSB ~ e:", e)
+    return 
+  })
   return supabaseAdmin(c)
     .from('stats')
     .insert(

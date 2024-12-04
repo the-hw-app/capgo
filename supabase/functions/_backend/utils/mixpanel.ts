@@ -10,12 +10,16 @@ export const sendMixpanelStudentEvent = async (
     event_name: string,
     params: any = {},
 ) => {
+    console.log("🚀 ~ params:", params)
+
     if (!params.device_id) return;
     const { data: deviceInfo } = await supabaseAdmin(context)
         .from('devices')
         .select('device_id, custom_id')
         .eq('device_id', params.device_id)
         .single()
+
+    console.log("🚀 ~ deviceInfo:", deviceInfo)
 
     if (!deviceInfo?.custom_id) return;
     const eventBody = {

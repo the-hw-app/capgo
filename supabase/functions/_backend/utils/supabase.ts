@@ -584,8 +584,8 @@ export function trackDevicesSB(c: Context, app_id: string, device_id: string, ve
     .eq('device_id', device_id)
 }
 
-export function trackLogsSB(c: Context, app_id: string, device_id: string, action: Database['public']['Enums']['stats_action'], version_id: number) {
-  sendMixpanelStudentEvent(c, `capgo_${action}`, { device_id, app_id, version_id })
+export async function trackLogsSB(c: Context, app_id: string, device_id: string, action: Database['public']['Enums']['stats_action'], version_id: number, device: DeviceWithoutCreatedAt) {
+  await sendMixpanelStudentEvent(c, `capgo_${action}`, device)
   .catch(e => {
     console.log("🚀 ~ trackLogsSB ~ e:", e)
     return 

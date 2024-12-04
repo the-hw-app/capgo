@@ -28,18 +28,7 @@ export const sendMixpanelStudentEvent = async (
         ...params,
         triggered_via: "capgo_backend",
     };
-
-    console.log("🚀 ~ params.version_id:", params.version_id)
-    if (params.version_id) {
-        const { data: versionInfo } = await supabaseAdmin(context)
-            .from('app_versions')
-            .select('id, name')
-            .eq('id', params.version_id)
-            .single()
-
-        eventBody['version_name'] = versionInfo?.name
-    }
-    console.log("🚀 ~ eventBody['version_name']:", eventBody['version_name'])
+    console.log("🚀 ~ eventBody0:", eventBody)
 
     const camelToSnakeCase = (str: any) => str.replace(/[A-Z]/g, (letter: any) => `_${letter.toLowerCase()}`);
     console.log("🚀 ~ eventBody:", camelToSnakeCase(event_name), eventBody)

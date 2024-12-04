@@ -215,6 +215,7 @@ async function post(c: Context, body: AppStats) {
       }, 200)
     }
     statsActions.push({ action })
+    console.log("🚀 ~ post ~ device, statsActions:", device, statsActions)
     await sendStatsAndDevice(c, device, statsActions)
     return c.json(BRES)
   }

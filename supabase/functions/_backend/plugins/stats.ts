@@ -156,7 +156,6 @@ async function post(c: Context, body: AppStats) {
       .select('device_id, custom_id')
       .eq('device_id', device_id)
       .single()
-    console.log("🚀 ~ post ~ deviceInfo:", deviceInfo)
 
     const { data: appVersion } = await supabaseAdmin(c)
       .from('app_versions')
@@ -215,7 +214,6 @@ async function post(c: Context, body: AppStats) {
       }, 200)
     }
     statsActions.push({ action })
-    console.log("🚀 ~ post ~ device, statsActions:", device, statsActions)
     await sendStatsAndDevice(c, device, statsActions)
     return c.json(BRES)
   }

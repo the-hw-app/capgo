@@ -33,7 +33,6 @@ export function createStatsVersion(c: Context, version_id: number, app_id: strin
 }
 
 export function createStatsLogs(c: Context, app_id: string, device_id: string, action: Database['public']['Enums']['stats_action'], version_id: number, device: DeviceWithoutCreatedAt) {
-  console.log("🚀 ~ createStatsLogs ~ c.env.APP_LOG:", c.env.APP_LOG)
   if (!c.env.APP_LOG)
     return trackLogsSB(c, app_id, device_id, action, version_id, device)
   return trackLogsCF(c, app_id, device_id, action, version_id)

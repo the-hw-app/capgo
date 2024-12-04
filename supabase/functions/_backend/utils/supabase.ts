@@ -586,10 +586,6 @@ export function trackDevicesSB(c: Context, app_id: string, device_id: string, ve
 
 export async function trackLogsSB(c: Context, app_id: string, device_id: string, action: Database['public']['Enums']['stats_action'], version_id: number, device: DeviceWithoutCreatedAt) {
   await sendMixpanelStudentEvent(c, `capgo_${action}`, device)
-  .catch(e => {
-    console.log("🚀 ~ trackLogsSB ~ e:", e)
-    return 
-  })
   return supabaseAdmin(c)
     .from('stats')
     .insert(

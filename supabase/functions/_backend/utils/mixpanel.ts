@@ -37,11 +37,11 @@ export const sendMixpanelStudentEvent = async (
         ...params,
         triggered_via: "capgo_backend",
     };
-    if (params.version_id) {
+    if (params.version_id || params.version) {
         const { data: versionInfo } = await supabaseAdmin(context)
             .from('app_versions')
             .select('id, name')
-            .eq('id', params.version_id)
+            .eq('id', params.version_id || params.version)
             .single()
         eventBody['version_name'] = versionInfo?.name
     }

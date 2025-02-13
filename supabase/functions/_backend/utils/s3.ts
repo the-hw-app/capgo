@@ -1,3 +1,7 @@
+import { prepareVirtualFile } from "https://deno.land/x/mock_file@v1.1.2/mod.ts";
+prepareVirtualFile("./aws/config");
+prepareVirtualFile("./aws/credentials");
+
 import type { Context } from '@hono/hono'
 import ky from 'ky'
 import type { CompletedPart } from '@aws-sdk/client-s3'
